@@ -25,12 +25,28 @@ Modern Pharmaceutical R&D and Clinical Trial Operations (**ICH E6(R3) GxP**) fac
 
 - **🛡️ Deterministic HIPAA / GDPR PHI De-Identification (`src/privacy/phi_scrubber.py`):** Redacts Patient Names, MRNs, SSNs/CNPs, Dates of Birth, Emails, and Phone Numbers *before* any LLM call, recording SHA-256 digests of raw vs. scrubbed payloads.
 - **⚖️ 3x Concurrent GxP Multi-Judge Consensus (`src/evaluators/multi_judge_consensus.py`):** Runs `ClinicalGroundednessJudge`, `PharmacovigilanceSafetyJudge`, and `GxPComplianceJudge` concurrently via `asyncio.gather`. Applies a mathematical variance penalty and automatically routes any synthesis with `consensus_score < 0.95` or a high-severity safety signal (`SUSAR`, `Grade 4/5 toxicity`) to **`PENDING_HITL_MEDICAL_REVIEW`**.
-- **⚛️ Hybrid Quantum-AI Molecular Screening (`src/agents/quantum_molecular_screener.py`):** Maps candidate ligand **SMILES** strings and disease receptors (`KRAS-G12C`, `EGFR-T790M`, `BACE1`) into a parameterized quantum ansatz (`RY/RZ` rotations + `CNOT` entanglement ladder) to estimate Variational Quantum Eigensolver (**VQE**) ground-state energies ($\text{Ha}$) and binding affinities ($\Delta G$ in $\text{kcal/mol}$).
-- **🔗 FDA 21 CFR Part 11 Cryptographic Hash-Chain Ledger (`src/compliance/fda_part11_ledger.py`):** Chains every clinical synthesis, quantum screen, and Medical Reviewer HITL electronic signature using `SHA-256` (`previous_hash` $\to$ `current_hash`) with live mathematical tamper verification (`GET /v1/audit/verify-integrity`).
+- **⚛️ Hybrid Quantum-AI Molecular Screening (`src/agents/quantum_molecular_screener.py`):** Maps candidate ligand **SMILES** strings and disease receptors (`KRAS-G12C`, `EGFR-T790M`, `BACE1`) into a parameterized quantum ansatz (`RY/RZ` rotations + `CNOT` entanglement ladder) to estimate Variational Quantum Eigensolver (**VQE**) ground-state energies (`E₀` in `Ha`) and binding affinities (`ΔG` in `kcal/mol`).
+- **🔗 FDA 21 CFR Part 11 Cryptographic Hash-Chain Ledger (`src/compliance/fda_part11_ledger.py`):** Chains every clinical synthesis, quantum screen, and Medical Reviewer HITL electronic signature using `SHA-256` (`previous_hash → current_hash`) with live mathematical tamper verification (`GET /v1/audit/verify-integrity`).
 - **💸 Pharmaceutical & Quantum Grant FinOps (`src/finops/study_budget.py`):** Tracks token and quantum statevector spend strictly per `clinical_study_id` (e.g., `STUDY-ONCO-KRAS-2026`), enforces HTTP `402` hard grant caps, and benchmarks savings against ephemeral Spot GPU NIM infrastructure.
 - **🖥️ Modern Biotech SaaS Workbench (`src/static/index.html`):** Features a Left Sidebar + Top Telemetry Bar layout, **Dark Mode / Light Mode Toggle (`☀️ / 🌙`)**, Non-Blocking Background Execution with live stage timers (`⏱️ 0.1s...`), custom SVG Avatar (**Dr. Helix**), and a **Multi-Turn 3-Track Collapsible Copilot** (`+ Extend` preview cards + `🎯 Focus Track` deep-dive continuation).
 
+---
 
+## 📑 Table of Contents (Index)
+
+- [🎯 Executive Value Proposition](#-executive-value-proposition--for-big-pharma-vps-of-rd-principal-architects--technical-recruiters)
+- [🏛️ End-to-End Architecture & Dual-Mode Execution (Standalone + Connected Lab)](#️-end-to-end-architecture--dual-mode-execution-standalone--connected-lab)
+- [📋 Regulatory & Compliance Mapping (GxP, FDA 21 CFR Part 11, HIPAA, EU AI Act)](#-regulatory--compliance-mapping-gxp-fda-21-cfr-part-11-hipaa-eu-ai-act)
+- [🔌 REST API & React 18 Workbench Endpoints](#-rest-api--react-18-workbench-endpoints)
+- [🚀 Quick Start (Local Python, Docker Compose & Kubernetes Helm)](#-quick-start-local-python-docker-compose--kubernetes-helm)
+  - [1. Local Python & Automated End-to-End Test Suite (`pytest`)](#1-local-python--automated-end-to-end-test-suite-pytest)
+  - [2. Docker Compose (With Persistent `/data` SQLite FDA Part 11 Volume)](#2-docker-compose-with-persistent-data-sqlite-fda-part-11-volume)
+  - [3. Kubernetes / K3s Deployment via Helm Chart](#3-kubernetes--k3s-deployment-via-helm-chart)
+- [💻 Live CLI & `curl` API Examples](#-live-cli--curl-api-examples)
+- [🧪 Interactive Jupyter Notebooks (`examples/`)](#-interactive-jupyter-notebooks-examples)
+- [📸 Live Workbench & API Screenshot Gallery](#-live-workbench--api-screenshot-gallery)
+- [📚 Ecosystem & Portfolio Documentation](#-ecosystem--portfolio-documentation)
+- [👨‍💻 Maintainer & Author](#-maintainer--author)
 
 ---
 
@@ -40,7 +56,7 @@ Every module in this repository is built with **12-Factor Environment Configurat
 - **Mode A — 100% Standalone Out-of-the-Box (`LLM_LIVE_MODE=false` default):** Works immediately after `git clone` with zero API keys or external services. Uses the deterministic GxP clinical synthesizer, 3x concurrent calibration judges, and the built-in pure-Python complex statevector quantum VQE simulator.
 - **Mode B — Connected Enterprise Lab (`LLM_LIVE_MODE=true`):** Routes live inference across the [**AI-Governance-Lab**](docs/portfolio-mapping.md) ecosystem:
   - **Tier 1 (`NIM_DIRECT_BASE_URL`):** Direct self-hosted NVIDIA NIM / TensorRT-LLM GPU containers (from `nvidia-nim-enterprise-patterns`).
-  - **Tier 2 (`LITELLM_BASE_URL`):** Centralized LiteLLM Gateway (`:4001` from `private-enterprise-ai-hub`) with automatic multi-model failover (`gemini-3.8-flash` $\to$ `glm-5.2` $\to$ `gemini-3.1-pro-preview` $\to$ `nvidia/nemotron-3-ultra-550b-a55b` $\to$ `codestral-2508`).
+  - **Tier 2 (`LITELLM_BASE_URL`):** Centralized LiteLLM Gateway (`:4001` from `private-enterprise-ai-hub`) with automatic multi-model failover (`gemini-3.8-flash → glm-5.2 → gemini-3.1-pro-preview → nvidia/nemotron-3-ultra-550b-a55b → codestral-2508`).
   - **Tier 3 (Automatic Failover):** Falls back transparently to the deterministic local GxP engine if external gateways are unreachable.
 
 ```mermaid
@@ -83,7 +99,7 @@ flowchart LR
 | `GET` | `/` | **Interactive React 18 BioMed & Quantum R&D Workbench** (4 tabs: Clinical Synthesis, Quantum VQE Screener, FDA Part 11 Ledger & HITL E-Signature, Pharma/Quantum FinOps). |
 | `GET` | `/docs` | Interactive OpenAPI 3.1 / Swagger UI documentation. |
 | `GET` | `/healthz` & `/readyz` | Kubernetes liveness and readiness probes (verifies SQLite persistence & SHA-256 ledger integrity). |
-| `POST` | `/v1/clinical/synthesize` | Runs HIPAA PHI Scrubber $\to$ FinOps Grant Check $\to$ Clinical Synthesizer (`[CIT-Px]`) $\to$ 3x Concurrent GxP Judges $\to$ FDA Part 11 Ledger. |
+| `POST` | `/v1/clinical/synthesize` | Runs HIPAA PHI Scrubber → FinOps Grant Check → Clinical Synthesizer (`[CIT-Px]`) → 3x Concurrent GxP Judges → FDA Part 11 Ledger. |
 | `POST` | `/v1/quantum/screen-molecule` | Runs Hybrid Quantum VQE simulation (`RY/RZ` + `CNOT`) for SMILES drug candidates, charges R&D study budget, and appends to FDA Part 11 Ledger. |
 | `POST` | `/v1/hitl/sign-record` | Appends a Medical Reviewer Human-in-the-Loop (HITL) Electronic Signature (`21 CFR §11.50`) linked to a clinical record. |
 | `GET` | `/v1/audit/ledger` | Returns historical SHA-256 hash-chained records from the SQLite ledger. |
@@ -154,7 +170,7 @@ curl -s -X POST http://localhost:8000/v1/clinical/synthesize \
   }' | jq .
 ```
 
-### 3. Hybrid Quantum VQE Molecular Screening (`SMILES` $\to E_0$ Hartrees & $\Delta G$ kcal/mol)
+### 3. Hybrid Quantum VQE Molecular Screening (`SMILES → E₀ (Hartrees) & ΔG (kcal/mol)`)
 Screens **Sotorasib** (`AMG-510` scaffold) against the **`KRAS-G12C`** receptor across 6 active-space qubits and 3 variational `RY/RZ + CNOT` layers:
 ```bash
 curl -s -X POST http://localhost:8000/v1/quantum/screen-molecule \
@@ -223,12 +239,33 @@ For computational chemists, clinical data scientists, and GxP auditors who prefe
 1. [**`examples/01_clinical_gxp_synthesis_and_fda_part11_audit.ipynb`**](examples/01_clinical_gxp_synthesis_and_fda_part11_audit.ipynb)
    - Demonstrates deterministic HIPAA/GDPR PHI redaction (`PHIScrubber`), clinical trial synthesis (`ClinicalTrialSynthesizer`), concurrent 3-judge consensus (`CalibratedMultiJudgeConsensus`), and FDA 21 CFR Part 11 SHA-256 hash-chain verification + HITL electronic signatures.
 2. [**`examples/02_quantum_vqe_drug_screening_and_grant_finops.ipynb`**](examples/02_quantum_vqe_drug_screening_and_grant_finops.ipynb)
-   - Demonstrates in-silico SMILES ligand screening (`Sotorasib` on `KRAS-G12C`) using the $2^N$ statevector VQE simulator (`RY/RZ` + `CNOT` ansatz), inspecting ground-state energy $E_0$ (Hartrees), binding affinity $\Delta G$ ($\text{kcal/mol}$), ASCII quantum circuits, and Clinical Study Grant FinOps accounting.
+   - Demonstrates in-silico SMILES ligand screening (`Sotorasib` on `KRAS-G12C`) using the `2^N` statevector VQE simulator (`RY/RZ` + `CNOT` ansatz), inspecting ground-state energy `E₀` (Hartrees), binding affinity `ΔG` (`kcal/mol`), ASCII quantum circuits, and Clinical Study Grant FinOps accounting.
 
 ```bash
 pip install jupyter
 jupyter notebook examples/
 ```
+
+---
+
+## 📸 Live Workbench & API Screenshot Gallery
+
+Below are live full-resolution captures from the **Quantum BioMed R&D & GxP Governance Workbench** deployed on Kubernetes (`K3s NodePort :30089`), showcasing the **Left Sidebar + Top Telemetry Bar App Shell**, **Clinical Protocol Synthesis & 3x GxP Multi-Judge Consensus**, **Hybrid Quantum VQE Molecular Screener**, **FDA 21 CFR Part 11 SHA-256 Ledger & Memory-Aware Judge Analytics**, **Clinical Study Grant FinOps**, and **Dr. Helix Multi-Turn 3-Track Copilot**:
+
+<details open>
+<summary><b>Click here to view the Live BioMed GxP, Quantum VQE, FDA Part 11 & Multi-Turn Copilot Screenshots (<code>prtscr&logs/pictures/</code>)</b></summary>
+<br>
+
+<div align="center">
+  <img src="prtscr%26logs/pictures/biomed1.png" width="48%" style="margin: 6px; border-radius: 10px;" alt="Clinical Trial Synthesis, HIPAA PHI Scrubber & 3x GxP Multi-Judge Consensus">
+  <img src="prtscr%26logs/pictures/biomed2.png" width="48%" style="margin: 6px; border-radius: 10px;" alt="Hybrid Quantum VQE Molecular Screener & Convergence Trajectory">
+  <img src="prtscr%26logs/pictures/biomed3.png" width="48%" style="margin: 6px; border-radius: 10px;" alt="FDA 21 CFR Part 11 SHA-256 Audit Ledger, HITL Electronic Signature & Grouped Judge Analytics">
+  <img src="prtscr%26logs/pictures/biomed4.png" width="48%" style="margin: 6px; border-radius: 10px;" alt="Pharma & Quantum R&D Study Grant FinOps & Dr. Helix Multi-Turn 3-Track Copilot">
+</div>
+
+</details>
+
+- 📂 **Direct link to screenshot folder:** [`prtscr&logs/pictures/`](prtscr%26logs/pictures/)
 
 ---
 

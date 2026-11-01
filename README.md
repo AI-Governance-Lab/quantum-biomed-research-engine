@@ -131,6 +131,107 @@ helm upgrade --install biomed-gxp-engine ./helm/biomed-gxp-engine \
 
 ---
 
+## 💻 Live CLI & `curl` API Examples
+
+Once the server is running (`http://localhost:8000` locally or `http://<K3S_NODE_IP>:30089` on Kubernetes), you can test every regulatory, clinical, quantum, and FinOps workflow directly from your terminal:
+
+### 1. Kubernetes Health & Readiness Probes (`/healthz` & `/readyz`)
+```bash
+curl -s http://localhost:8000/healthz | jq .
+curl -s http://localhost:8000/readyz | jq .
+```
+
+### 2. Clinical Trial Protocol Synthesis + HIPAA PHI Scrubber + 3x GxP Multi-Judge Consensus
+Redacts Patient Name, DOB, MRN, SSN, and Email prior to inference, synthesizes the protocol with mandatory `[CIT-P1]` / `[CIT-P2]` anchors, runs 3 concurrent GxP judges via `asyncio.gather`, and chains the record into the FDA 21 CFR Part 11 SQLite ledger:
+```bash
+curl -s -X POST http://localhost:8000/v1/clinical/synthesize \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clinical_study_id": "STUDY-ONCO-KRAS-2026",
+    "target_biomarker": "KRAS-G12C",
+    "protocol_text": "Patient Name: Johnathan Miller, DOB: 1968-04-19, MRN: ONC-884920, SSN: 412-88-9021, Email: j.miller68@clinical.org. Cohort A evaluated oral covalent KRAS-G12C inhibition (960 mg QD). Safety logs recorded Grade 2 nausea, mild diarrhea, fatigue, and transient elevated ALT/AST hepatic transaminases. Subjects with Child-Pugh B/C hepatic impairment were excluded.",
+    "preferred_model": "gemini-3.8-flash"
+  }' | jq .
+```
+
+### 3. Hybrid Quantum VQE Molecular Screening (`SMILES` $\to E_0$ Hartrees & $\Delta G$ kcal/mol)
+Screens **Sotorasib** (`AMG-510` scaffold) against the **`KRAS-G12C`** receptor across 6 active-space qubits and 3 variational `RY/RZ + CNOT` layers:
+```bash
+curl -s -X POST http://localhost:8000/v1/quantum/screen-molecule \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clinical_study_id": "STUDY-ONCO-KRAS-2026",
+    "molecule_smiles": "C=CC(=O)N1CCN(CC1)C2=NC(=O)N(C=C2C3=C(C=CC=C3F)O)C4=C(C=CN=C4C(C)C)C",
+    "target_receptor": "KRAS-G12C",
+    "num_qubits": 6,
+    "ansatz_layers": 3
+  }' | jq .
+```
+
+### 4. FDA 21 CFR Part 11 HITL Electronic Signature & SHA-256 Chain Verification
+Append a legally binding Medical Monitor Electronic Signature (`21 CFR §11.50 / §11.70`) and mathematically verify zero database tampering across the entire hash chain:
+```bash
+# 4a. Append HITL Electronic Signature (replace FDA11-XXXXXXXXXXXX with a record_id from step 2)
+curl -s -X POST http://localhost:8000/v1/hitl/sign-record \
+  -H "Content-Type: application/json" \
+  -d '{
+    "record_id": "FDA11-XXXXXXXXXXXX",
+    "medical_reviewer_id": "MD-ROCHE-4491",
+    "electronic_signature_meaning": "Medical Monitor Safety Review & Release Approval (21 CFR 11.50)",
+    "approved": true,
+    "reviewer_notes": "Confirmed hepatic transaminase monitoring protocol and DSMB clearance."
+  }' | jq .
+
+# 4b. Verify Cryptographic SHA-256 Hash-Chain Integrity from Genesis to Latest Block
+curl -s http://localhost:8000/v1/audit/verify-integrity | jq .
+
+# 4c. Inspect Overall & Grouped Judge Score Analytics (by Study, Evaluation Type & Biomarker)
+curl -s http://localhost:8000/v1/audit/analytics | jq .
+```
+
+### 5. Pharmaceutical & Quantum R&D Clinical Study Grant FinOps
+```bash
+# Allocate or update a Clinical Study R&D Grant budget cap ($5,000 USD)
+curl -s -X POST http://localhost:8000/v1/finops/allocate-grant \
+  -H "Content-Type: application/json" \
+  -d '{
+    "clinical_study_id": "STUDY-ONCO-KRAS-2026",
+    "allocated_budget_usd": 5000.00
+  }' | jq .
+
+# Inspect per-study token/quantum chargeback & Spot L4 GPU NIM savings
+curl -s http://localhost:8000/v1/finops/studies/STUDY-ONCO-KRAS-2026 | jq .
+```
+
+### 6. Multi-Turn 3-Track Dr. Helix AI Copilot (`plain` | `scientist` | `steps` | `dual`)
+```bash
+curl -s -X POST http://localhost:8000/v1/assistant/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "Explain the Quantum VQE Molecular Screener and how ΔG binding affinity is derived.",
+    "persona_mode": "dual",
+    "history": []
+  }' | jq .
+```
+
+---
+
+## 🧪 Interactive Jupyter Notebooks (`examples/`)
+
+For computational chemists, clinical data scientists, and GxP auditors who prefer interactive notebook experimentation, the repository includes two ready-to-run Jupyter Notebooks in [`examples/`](examples/):
+
+1. [**`examples/01_clinical_gxp_synthesis_and_fda_part11_audit.ipynb`**](examples/01_clinical_gxp_synthesis_and_fda_part11_audit.ipynb)
+   - Demonstrates deterministic HIPAA/GDPR PHI redaction (`PHIScrubber`), clinical trial synthesis (`ClinicalTrialSynthesizer`), concurrent 3-judge consensus (`CalibratedMultiJudgeConsensus`), and FDA 21 CFR Part 11 SHA-256 hash-chain verification + HITL electronic signatures.
+2. [**`examples/02_quantum_vqe_drug_screening_and_grant_finops.ipynb`**](examples/02_quantum_vqe_drug_screening_and_grant_finops.ipynb)
+   - Demonstrates in-silico SMILES ligand screening (`Sotorasib` on `KRAS-G12C`) using the $2^N$ statevector VQE simulator (`RY/RZ` + `CNOT` ansatz), inspecting ground-state energy $E_0$ (Hartrees), binding affinity $\Delta G$ ($\text{kcal/mol}$), ASCII quantum circuits, and Clinical Study Grant FinOps accounting.
+
+```bash
+pip install jupyter
+jupyter notebook examples/
+```
+
+---
+
 ## 📚 Ecosystem & Portfolio Documentation
 
 - [**`docs/portfolio-mapping.md`**](docs/portfolio-mapping.md) — How `quantum-biomed-research-engine` integrates with `private-enterprise-ai-hub`, `governed-quantum-agents`, and `nvidia-nim-enterprise-patterns`, plus the **Pharma & Quantum Interview Competency Matrix**.

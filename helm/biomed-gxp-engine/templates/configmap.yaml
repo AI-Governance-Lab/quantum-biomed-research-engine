@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: biomed-gxp-engine
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  APP_NAME: {{ .Values.config.APP_NAME | quote }}
+  APP_VERSION: {{ .Values.config.APP_VERSION | quote }}
+  APP_ENV: {{ .Values.config.APP_ENV | quote }}
+  API_BIND_HOST: {{ .Values.config.API_BIND_HOST | quote }}
+  API_BIND_PORT: {{ .Values.config.API_BIND_PORT | quote }}
+  DATA_DIR: {{ .Values.config.DATA_DIR | quote }}
+  FDA_LEDGER_DB_PATH: {{ .Values.config.FDA_LEDGER_DB_PATH | quote }}
+  FINOPS_BUDGET_DB_PATH: {{ .Values.config.FINOPS_BUDGET_DB_PATH | quote }}
+  LLM_LIVE_MODE: {{ .Values.config.LLM_LIVE_MODE | quote }}
+  NIM_DIRECT_BASE_URL: {{ .Values.config.NIM_DIRECT_BASE_URL | quote }}
+  NIM_DIRECT_MODEL: {{ .Values.config.NIM_DIRECT_MODEL | quote }}
+  LITELLM_BASE_URL: {{ .Values.config.LITELLM_BASE_URL | quote }}
+  LITELLM_PRIMARY_MODEL: {{ .Values.config.LITELLM_PRIMARY_MODEL | quote }}
+  LITELLM_FALLBACK_MODELS: {{ .Values.config.LITELLM_FALLBACK_MODELS | quote }}
+  GXP_CONSENSUS_THRESHOLD: {{ .Values.config.GXP_CONSENSUS_THRESHOLD | quote }}
+  DEFAULT_STUDY_GRANT_BUDGET_USD: {{ .Values.config.DEFAULT_STUDY_GRANT_BUDGET_USD | quote }}
+  K8S_NODEPORT: {{ .Values.config.K8S_NODEPORT | quote }}
+  SIBLING_GQA_WORKBENCH_URL: {{ .Values.config.SIBLING_GQA_WORKBENCH_URL | quote }}
+  SIBLING_PRIVATE_HUB_URL: {{ .Values.config.SIBLING_PRIVATE_HUB_URL | quote }}
+

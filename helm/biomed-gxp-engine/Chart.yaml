@@ -1,0 +1,17 @@
+apiVersion: v2
+name: biomed-gxp-engine
+description: Enterprise Pharmaceutical R&D, GxP Clinical Trial Synthesis, Hybrid Quantum-AI Molecular Screening, Clinical Study Token FinOps & FDA 21 CFR Part 11 Cryptographic Audit Engine
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - pharma
+  - biomed
+  - gxp
+  - fda-21-cfr-part-11
+  - hipaa
+  - quantum-drug-discovery
+  - litellm
+maintainers:
+  - name: Marian Ropota
+    url: https://github.com/AI-Governance-Lab

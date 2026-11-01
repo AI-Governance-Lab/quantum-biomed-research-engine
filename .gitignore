@@ -1,0 +1,50 @@
+# Environment & Secrets (12-Factor App)
+.env
+.env.*
+!.env.example
+credentials/
+*.pem
+*.key
+
+# SQLite Databases & Persistent R&D Ledgers
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Python Bytecode & Virtual Environments
+__pycache__/
+*.py[codz]
+*$py.class
+.Python
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+env/
+ENV/
+
+# Test & Coverage Artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+
+# IDE, OS & Local Scratch
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+*.log
+linkedin/

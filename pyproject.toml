@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantum-biomed-research-engine"
+version = "1.0.0"
+description = "Enterprise Pharmaceutical R&D, GxP Clinical Trial Synthesis, Hybrid Quantum-AI Molecular Screening, Clinical Study Token FinOps, and FDA 21 CFR Part 11 Cryptographic Audit Engine."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+authors = [
+    { name = "Marian Ropota" }
+]
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
+    "pydantic>=2.9.0",
+    "python-dotenv>=1.0.1",
+    "httpx>=0.27.2",
+    "litellm>=1.52.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+]
+quantum = [
+    "qiskit>=1.2.0",
+    "qiskit-aer>=0.15.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+

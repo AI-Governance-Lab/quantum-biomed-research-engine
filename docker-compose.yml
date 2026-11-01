@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  quantum-biomed-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: quantum-biomed-research-engine:1.0.0
+    container_name: quantum-biomed-engine
+    restart: unless-stopped
+    ports:
+      - "${API_BIND_PORT:-8000}:8000"
+    environment:
+      APP_NAME: "${APP_NAME:-Quantum BioMed R&D Governance Engine}"
+      APP_VERSION: "${APP_VERSION:-1.0.0}"
+      APP_ENV: "${APP_ENV:-production}"
+      API_BIND_HOST: "0.0.0.0"
+      API_BIND_PORT: "8000"
+      DATA_DIR: "/data"
+      FDA_LEDGER_DB_PATH: "/data/fda_part11_audit_ledger.db"
+      FINOPS_BUDGET_DB_PATH: "/data/clinical_study_finops.db"
+      LLM_LIVE_MODE: "${LLM_LIVE_MODE:-false}"
+      NIM_DIRECT_BASE_URL: "${NIM_DIRECT_BASE_URL:-}"
+      NIM_DIRECT_API_KEY: "${NIM_DIRECT_API_KEY:-}"
+      NIM_DIRECT_MODEL: "${NIM_DIRECT_MODEL:-deepseek-ai/deepseek-r1-distill-llama-8b}"
+      LITELLM_BASE_URL: "${LITELLM_BASE_URL:-http://localhost:4001/v1}"
+      LITELLM_API_KEY: "${LITELLM_API_KEY:-}"
+      LITELLM_PRIMARY_MODEL: "${LITELLM_PRIMARY_MODEL:-gemini-3.8-flash}"
+      LITELLM_FALLBACK_MODELS: "${LITELLM_FALLBACK_MODELS:-glm-5.2,gemini-3.1-pro-preview,nvidia/nemotron-3-ultra-550b-a55b,codestral-2508}"
+      GXP_CONSENSUS_THRESHOLD: "${GXP_CONSENSUS_THRESHOLD:-0.95}"
+      DEFAULT_STUDY_GRANT_BUDGET_USD: "${DEFAULT_STUDY_GRANT_BUDGET_USD:-2500.00}"
+    volumes:
+      - biomed_fda_ledger_data:/data
+
+volumes:
+  biomed_fda_ledger_data:
+    driver: local

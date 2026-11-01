@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quantum BioMed R&D Governance Engine — GxP, FDA 21 CFR Part 11 & VQE Workbench</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { background-color: #060b16; color: #e2e8f0; font-family: Inter, system-ui, -apple-system, sans-serif; transition: background-color 0.2s, color 0.2s; }
+    .glass { background: rgba(15, 23, 42, 0.82); backdrop-filter: blur(12px); border: 1px solid rgba(56, 189, 248, 0.18); }
+    .glass-card { background: rgba(15, 23, 42, 0.68); border: 1px solid rgba(148, 163, 184, 0.16); }
+
+    /* High-Contrast Daylight Light Theme */
+    body.light-theme, .light-theme .app-shell { background-color: #f1f5f9 !important; color: #0f172a !important; }
+    .light-theme aside { background-color: #ffffff !important; border-color: #cbd5e1 !important; }
+    .light-theme header { background-color: rgba(255, 255, 255, 0.95) !important; border-color: #cbd5e1 !important; }
+    .light-theme .glass { background: rgba(255, 255, 255, 0.96) !important; border: 1px solid #cbd5e1 !important; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05); }
+    .light-theme .glass-card { background: #f8fafc !important; border: 1px solid #cbd5e1 !important; }
+    .light-theme .text-white { color: #0f172a !important; }
+    .light-theme .text-slate-100, .light-theme .text-slate-200 { color: #1e293b !important; }
+    .light-theme .text-slate-300 { color: #334155 !important; }
+    .light-theme .text-slate-400 { color: #475569 !important; }
+    .light-theme .text-cyan-300, .light-theme .text-cyan-200, .light-theme .text-cyan-400 { color: #0369a1 !important; }
+    .light-theme .text-purple-300, .light-theme .text-purple-200, .light-theme .text-purple-400 { color: #6d28d9 !important; }
+    .light-theme .text-emerald-300, .light-theme .text-emerald-200, .light-theme .text-emerald-400 { color: #047857 !important; }
+    .light-theme .text-amber-300, .light-theme .text-amber-200 { color: #b45309 !important; }
+    .light-theme input, .light-theme textarea, .light-theme select, .light-theme pre {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #94a3b8 !important;
+    }
+    .light-theme .bg-slate-900, .light-theme .bg-slate-900\/90, .light-theme .bg-slate-900\/80, .light-theme .bg-slate-900\/60, .light-theme .bg-slate-950, .light-theme .bg-slate-950\/90, .light-theme .bg-slate-950\/80, .light-theme .bg-slate-800 {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-cyan-500 selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    const CLINICAL_PRESETS = [
+      {
+        id: "onco-kras",
+        badge: "Phase II Oncology • Autonomous Pass",
+        studyId: "STUDY-ONCO-KRAS-2026",
+        biomarker: "KRAS-G12C",
+        protocol: "Patient Name: Johnathan Miller, DOB: 1968-04-19, MRN: ONC-884920, SSN: 412-88-9021, Email: j.miller68@clinical.org. Cohort A enrolled subjects with locally advanced KRAS-G12C mutated non-small cell lung cancer receiving oral covalent inhibitor 960 mg once daily. Pharmacovigilance safety monitoring recorded Grade 2 nausea, mild diarrhea, fatigue, and transient elevated ALT/AST hepatic transaminases. Exclusion criteria enforce Child-Pugh Class B/C hepatic impairment and concomitant strong CYP3A4 inducers."
+      },
+      {
+        id: "neuro-bace1",
+        badge: "Phase Ib Neurology • Autonomous Pass",
+        studyId: "STUDY-NEURO-BACE1-2026",
+        biomarker: "BACE1-AMYLOID",
+        protocol: "Subject Name: Elena Rostova, DOB: 1955-11-03, MRN: NEU-331044, Phone: +1 (617) 555-0192. Early-stage prodromal Alzheimer cohort evaluating selective BACE1 small-molecule inhibition across cerebrospinal fluid biomarker endpoints. Observed adverse events included mild rash and transient fatigue. Subjects with severe renal impairment or baseline QTc > 470 ms were excluded per ICH E6(R3) protocol guardrails."
+      },
+      {
+        id: "high-risk-susar",
+        badge: "High-Risk SUSAR • Triggers HITL Review",
+        studyId: "STUDY-IMMUNO-CAR-2026",
+        biomarker: "CD19-CAR-T",
+        protocol: "Patient: Marcus Vance, MRN: IMM-902114, SSN: 501-33-7741. Phase I dose-escalation cohort evaluating autologous CD19-CAR-T infusion. Serious pharmacovigilance alert: one subject experienced Grade 4 cytokine release syndrome (SUSAR) with neurotoxicity and neutropenia requiring ICU clinical hold. Immediate Medical Monitor HITL electronic signature is required prior to cohort continuation."
+      }
+    ];
+
+    const QUANTUM_PRESETS = [
+      {
+        id: "sotorasib",
+        name: "Sotorasib (AMG-510 Scaffold)",
+        studyId: "STUDY-ONCO-KRAS-2026",
+        receptor: "KRAS-G12C",
+        qubits: 6,
+        layers: 3,
+        smiles: "C=CC(=O)N1CCN(CC1)C2=NC(=O)N(C=C2C3=C(C=CC=C3F)O)C4=C(C=CN=C4C(C)C)C"
+      },
+      {
+        id: "osimertinib",
+        name: "Osimertinib (EGFR-T790M Ligand)",
+        studyId: "STUDY-ONCO-EGFR-2026",
+        receptor: "EGFR-T790M",
+        qubits: 8,
+        layers: 4,
+        smiles: "CN1C=C(C2=CC=CC=C21)C3=NC(=NC=C3)NC4=C(C=C(C(=C4)NC(=O)C=C)N(C)CCN(C)C)OC"
+      },
+      {
+        id: "verubecestat",
+        name: "Verubecestat (BACE1 Inhibitor)",
+        studyId: "STUDY-NEURO-BACE1-2026",
+        receptor: "BACE1-AMYLOID",
+        qubits: 6,
+        layers: 3,
+        smiles: "CC1(CS(=O)(=O)NC(=N1)N)C2=C(C=CC(=C2)NC(=O)C3=NC=C(C=C3)F)F"
+      }
+    ];
+
+    function VqeTrajectoryChart({ trajectory }) {
+      if (!trajectory || trajectory.length < 2) return null;
+      const minE = Math.min(...trajectory);
+      const maxE = Math.max(...trajectory);
+      const span = (maxE - minE) || 1;
+      const width = 540, height = 165, padX = 44, padY = 24;
+      const points = trajectory.map((val, idx) => {
+        const x = padX + (idx / (trajectory.length - 1)) * (width - padX * 2);
+        const y = height - padY - ((val - minE) / span) * (height - padY * 2);
+        return `${x},${y}`;
+      }).join(" ");
+
+      return (
+        <div className="glass-card rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-cyan-400">
+              VQE Variational Ground-State Energy Trajectory (Hartrees)
+            </span>
+            <span className="text-xs font-mono text-emerald-400">
+              E_0 = {minE} Ha
+            </span>
+          </div>
+          <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-36 overflow-visible">
+            <line x1={padX} y1={padY} x2={width - padX} y2={padY} stroke="#1e293b" strokeDasharray="4" />
+            <line x1={padX} y1={height - padY} x2={width - padX} y2={height - padY} stroke="#334155" />
+            <polyline fill="none" stroke="#06b6d4" strokeWidth="3" points={points} />
+            {trajectory.map((val, idx) => {
+              const x = padX + (idx / (trajectory.length - 1)) * (width - padX * 2);
+              const y = height - padY - ((val - minE) / span) * (height - padY * 2);
+              return (
+                <g key={idx}>
+                  <circle cx={x} cy={y} r="3.5" fill="#22d3ee" />
+                  {(idx === 0 || idx === trajectory.length - 1) && (
+                    <text x={x} y={y - 8} textAnchor="middle" fill="#cbd5e1" fontSize="10">{val.toFixed(3)}</text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      );
+    }
+
+    function DrHelixAvatar({ size = "md", thinking = false }) {
+      const dims = size === "sm" ? "w-8 h-8" : size === "lg" ? "w-14 h-14" : "w-11 h-11";
+      return (
+        <div className={`relative ${dims} rounded-2xl bg-gradient-to-br from-cyan-500/30 via-indigo-600/30 to-emerald-500/30 border border-cyan-400/60 flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0`}>
+          <svg viewBox="0 0 48 48" className="w-4/5 h-4/5" fill="none">
+            <ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(30 24 24)" stroke="#22d3ee" strokeWidth="1.8" strokeOpacity="0.85" />
+            <ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(-30 24 24)" stroke="#a855f7" strokeWidth="1.8" strokeOpacity="0.85" />
+            <path d="M18 13 C24 18, 24 30, 30 35" stroke="#34d399" strokeWidth="2.4" strokeLinecap="round" />
+            <path d="M30 13 C24 18, 24 30, 18 35" stroke="#38bdf8" strokeWidth="2.4" strokeLinecap="round" />
+            <circle cx="24" cy="24" r="4.2" fill="#22d3ee" />
+          </svg>
+          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-950 ${thinking ? "bg-amber-400 animate-ping" : "bg-emerald-400"}`} />
+        </div>
+      );
+    }
+
+    function UserScientistAvatar() {
+      return (
+        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-600/40 to-cyan-600/40 border border-purple-400/50 flex items-center justify-center text-base font-bold text-white shadow shrink-0">
+          👨‍🔬
+        </div>
+      );
+    }
+
+    function CollapsibleChatSection({ title, borderColor, titleColor, previewText, isOpen, onToggle, onFocusTrack, isFocusedTrack, children }) {
+      const shortPreview = (previewText || "").replace(/\s+/g, " ").trim().slice(0, 120);
+      return (
+        <div
+          onClick={onToggle}
+          className={`cursor-pointer glass-card rounded-xl p-3.5 border-l-4 ${borderColor} hover:bg-slate-900/90 transition space-y-2`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className={`text-[11px] font-bold uppercase tracking-wider ${titleColor}`}>
+              {title} {isFocusedTrack ? " • 🎯 ACTIVE CONTEXT" : ""}
+            </span>
+            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+              {!isFocusedTrack && onFocusTrack && (
+                <button
+                  onClick={onFocusTrack}
+                  className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-400/50 text-[10px] font-semibold text-cyan-200"
+                >
+                  🎯 Focus Track
+                </button>
+              )}
+              <button
+                onClick={onToggle}
+                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[10px] font-mono text-cyan-200 shrink-0"
+              >
+                {isOpen ? "− Collapse" : "+ Extend"}
+              </button>
+            </div>
+          </div>
+          {!isOpen ? (
+            <p className="text-xs text-slate-400 truncate">
+              {shortPreview}{shortPreview.length >= 120 ? "..." : ""} <span className="text-cyan-400 font-semibold ml-1">[Click to extend]</span>
+            </p>
+          ) : (
+            <div className="pt-2 border-t border-slate-800/80 space-y-3" onClick={e => e.stopPropagation()}>
+              {children}
+              {onFocusTrack && (
+                <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-slate-400">
+                    Want to continue only in this context with deeper details?
+                  </span>
+                  <button
+                    onClick={onFocusTrack}
+                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-bold text-[11px] transition shrink-0"
+                  >
+                    🎯 Continue in This Context Only (Deep Dive) ➢
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function AssistantTurnBubble({ msg, idx, personaMode, onSelectContextTrack, askAssistantGuide, disabled }) {
+      const effectiveMode = msg.locked_track || personaMode;
+      const [openSections, setOpenSections] = useState({
+        plain: effectiveMode === "plain",
+        sci: effectiveMode === "scientist",
+        steps: effectiveMode === "steps"
+      });
+
+      useEffect(() => {
+        if (personaMode === "plain") setOpenSections({ plain: true, sci: false, steps: false });
+        else if (personaMode === "scientist") setOpenSections({ plain: false, sci: true, steps: false });
+        else if (personaMode === "steps") setOpenSections({ plain: false, sci: false, steps: true });
+      }, [personaMode]);
+
+      const toggleSec = (key) => {
+        setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+      };
+
+      const allOpen = openSections.plain && openSections.sci && openSections.steps;
+      const toggleAll = () => {
+        const nextState = !allOpen;
+        setOpenSections({ plain: nextState, sci: nextState, steps: nextState });
+      };
+
+      return (
+        <div className="flex items-start gap-3">
+          <DrHelixAvatar size="md" thinking={false} />
+          <div className="flex-1 space-y-2.5 max-w-2xl">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400 px-1">
+              <span className="text-cyan-300 font-bold">
+                Dr. Helix (Turn #{msg.turn_count || idx + 1}) • {msg.model_used} {msg.duration_sec ? `• ⏱️ ${msg.duration_sec}s` : ""}
+              </span>
+              {personaMode === "dual" && (
+                <button
+                  onClick={toggleAll}
+                  className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[10px] text-cyan-300"
+                >
+                  {allOpen ? "Collapse All 3" : "Extend All 3"}
+                </button>
+              )}
+            </div>
+
+            {(personaMode === "dual" || personaMode === "plain") && msg.plain_language_summary && (
+              <CollapsibleChatSection
+                title="1. 👤 Everyday Plain-Language Explanation"
+                borderColor="border-cyan-400"
+                titleColor="text-cyan-300"
+                previewText={msg.plain_language_summary}
+                isOpen={openSections.plain || personaMode === "plain"}
+                isFocusedTrack={personaMode === "plain"}
+                onToggle={() => toggleSec("plain")}
+                onFocusTrack={() => onSelectContextTrack("plain", "Please elaborate further in Everyday Plain Language with concrete real-world examples and analogies.")}
+              >
+                <p className="text-xs text-slate-200 whitespace-pre-wrap leading-relaxed">
+                  {msg.plain_language_summary}
+                </p>
+              </CollapsibleChatSection>
+            )}
+
+            {(personaMode === "dual" || personaMode === "scientist") && msg.scientific_deep_dive && (
+              <CollapsibleChatSection
+                title="2. 🔬 Scientist & GxP Principal Architect Deep-Dive"
+                borderColor="border-purple-400"
+                titleColor="text-purple-300"
+                previewText={msg.scientific_deep_dive}
+                isOpen={openSections.sci || personaMode === "scientist"}
+                isFocusedTrack={personaMode === "scientist"}
+                onToggle={() => toggleSec("sci")}
+                onFocusTrack={() => onSelectContextTrack("scientist", "Please elaborate in deeper scientific, mathematical, and GxP/FDA 21 CFR Part 11 architectural detail.")}
+              >
+                <p className="text-xs text-slate-200 whitespace-pre-wrap leading-relaxed">
+                  {msg.scientific_deep_dive}
+                </p>
+              </CollapsibleChatSection>
+            )}
+
+            {(personaMode === "dual" || personaMode === "steps") && msg.step_by_step_guide && msg.step_by_step_guide.length > 0 && (
+              <CollapsibleChatSection
+                title={`3. 🧭 Step-by-Step Practical Guide (${msg.step_by_step_guide.length} steps)`}
+                borderColor="border-emerald-400"
+                titleColor="text-emerald-300"
+                previewText={msg.step_by_step_guide[0]}
+                isOpen={openSections.steps || personaMode === "steps"}
+                isFocusedTrack={personaMode === "steps"}
+                onToggle={() => toggleSec("steps")}
+                onFocusTrack={() => onSelectContextTrack("steps", "Please provide a more detailed, granular step-by-step operational walkthrough and verification checklist.")}
+              >
+                <ol className="list-decimal list-inside text-xs text-slate-200 space-y-1.5">
+                  {msg.step_by_step_guide.map((st, sIdx) => <li key={sIdx} className="leading-relaxed">{st}</li>)}
+                </ol>
+              </CollapsibleChatSection>
+            )}
+
+            {msg.suggested_followups && msg.suggested_followups.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {msg.suggested_followups.map((fq, fIdx) => (
+                  <button
+                    key={fIdx}
+                    onClick={() => askAssistantGuide(fq)}
+                    disabled={disabled}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-400/50 text-[11px] text-cyan-200 transition"
+                  >
+                    ↳ {fq}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const CLINICAL_PIPELINE_STAGES = [
+      { id: 1, title: "1. HIPAA PHI Scrubber", detail: "Redacting patient identifiers & computing SHA-256 digest" },
+      { id: 2, title: "2. FinOps Grant Check", detail: "Verifying clinical study USD budget cap in SQLite" },
+      { id: 3, title: "3. Clinical Synthesis", detail: "Generating [CIT-Px] protocol summary & AE extraction" },
+      { id: 4, title: "4. 3x GxP AI Judges", detail: "Concurrent asyncio.gather Groundedness, Safety & GxP audit" },
+      { id: 5, title: "5. FDA Part 11 Ledger", detail: "Appending immutable SHA-256 hash-chain block" }
+    ];
+
+    const QUANTUM_PIPELINE_STAGES = [
+      { id: 1, title: "1. SMILES Hamiltonian", detail: "Mapping ligand & receptor orbitals to N qubits" },
+      { id: 2, title: "2. RY/RZ + CNOT Ansatz", detail: "Constructing parameterized entanglement ladder" },
+      { id: 3, title: "3. VQE Minimization", detail: "Simulating 2^N complex statevector ground energy E_0" },
+      { id: 4, title: "4. FinOps & FDA Ledger", detail: "Recording ΔG (kcal/mol) & SHA-256 audit receipt" }
+    ];
+
+    function PipelineFlowCard({ title, stages, job, accent = "cyan" }) {
+      if (!job.running && !job.lastDuration) return null;
+      const activeStageObj = stages.find(s => s.id === job.step) || stages[stages.length - 1];
+      const pct = job.running
+        ? Math.min(96, Math.round((job.step / stages.length) * 100))
+        : 100;
+
+      return (
+        <div className="glass rounded-2xl p-4 border border-cyan-500/40 space-y-3 shadow-lg">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              {job.running ? (
+                <span className="w-3 h-3 rounded-full bg-amber-400 animate-ping" />
+              ) : (
+                <span className="w-3 h-3 rounded-full bg-emerald-400" />
+              )}
+              <span className="text-xs font-bold uppercase tracking-wider text-white">
+                {job.running ? `⚡ Executing ${title} (Runs in Background)` : `✅ ${title} Completed`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className={`px-2.5 py-1 rounded-lg font-bold ${
+                job.running
+                  ? "bg-amber-500/20 border border-amber-400/50 text-amber-300"
+                  : "bg-emerald-500/20 border border-emerald-400/50 text-emerald-300"
+              }`}>
+                ⏱️ {job.running ? `Elapsed: ${job.elapsed}s` : `Completed in ${job.lastDuration}s`}
+              </span>
+            </div>
+          </div>
+
+          {/* Animated Progress Bar */}
+          <div className="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+            <div
+              className={`h-full transition-all duration-200 ${
+                job.running
+                  ? "bg-gradient-to-r from-cyan-400 via-indigo-400 to-emerald-400 animate-pulse"
+                  : "bg-emerald-400"
+              }`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+
+          {job.running && activeStageObj && (
+            <div className="text-xs font-mono text-cyan-300">
+              ▶ Stage {job.step}/{stages.length}: <strong>{activeStageObj.title}</strong> — {activeStageObj.detail}...
+            </div>
+          )}
+
+          <div className={`grid grid-cols-1 md:grid-cols-${stages.length} gap-2 pt-1`}>
+            {stages.map(st => {
+              const isDone = !job.running || st.id < job.step;
+              const isCurrent = job.running && st.id === job.step;
+              return (
+                <div
+                  key={st.id}
+                  className={`p-2.5 rounded-xl border text-xs transition ${
+                    isCurrent
+                      ? "bg-cyan-500/20 border-cyan-400 text-white shadow-md shadow-cyan-500/10"
+                      : isDone
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
+                      : "bg-slate-900/60 border-slate-800 text-slate-500"
+                  }`}
+                >
+                  <div className="flex items-center justify-between font-bold mb-0.5">
+                    <span className="truncate">{st.title}</span>
+                    <span>{isCurrent ? "⏳" : isDone ? "✓" : "•"}</span>
+                  </div>
+                  <div className="text-[11px] opacity-80 leading-tight">{st.detail}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    const DEFAULT_MODELS = [
+      { id: "", label: "Auto Gateway (gemini-3.8-flash + Multi-Model Failover)" },
+      { id: "gemini-3.8-flash", label: "Google Gemini 3.8 Flash (Vertex AI • Fast Clinical Synthesis)" },
+      { id: "glm-5.2", label: "Zhipu GLM-5.2 MaaS (Vertex AI • 1M Context Reasoning)" },
+      { id: "gemini-3.1-pro-preview", label: "Google Gemini 3.1 Pro Preview (Vertex AI • Deep GxP Reasoning)" },
+      { id: "gemini-4-argon", label: "Google Gemini 4 Argon (Vertex AI • Scientific Synthesis)" },
+      { id: "codestral-2508", label: "Mistral Codestral 2508 (256k Context)" },
+      { id: "ministral-14b-latest", label: "Mistral Ministral 14B (General Clinical Instructions)" },
+      { id: "nvidia/nemotron-3-ultra-550b-a55b", label: "NVIDIA Nemotron 3 Ultra 550B (NVIDIA NIM Frontier MoE)" },
+      { id: "deepseek-ai/deepseek-v4-flash-0731", label: "DeepSeek v4 Flash (NVIDIA NIM High-Speed Reasoning)" },
+      { id: "deterministic-offline", label: "Deterministic Local GxP Engine (Zero-Token Offline Fallback)" }
+    ];
+
+    function App() {
+      const [themeMode, setThemeMode] = useState(() => localStorage.getItem("biomed_theme") || "dark");
+      const [activeTab, setActiveTab] = useState("clinical");
+
+      useEffect(() => {
+        localStorage.setItem("biomed_theme", themeMode);
+        if (themeMode === "light") {
+          document.body.classList.add("light-theme");
+        } else {
+          document.body.classList.remove("light-theme");
+        }
+      }, [themeMode]);
+      const [runtimeCfg, setRuntimeCfg] = useState(null);
+      const [availableModels, setAvailableModels] = useState(DEFAULT_MODELS);
+      const [selectedModel, setSelectedModel] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [errorMsg, setErrorMsg] = useState("");
+
+      // Independent background-capable job states per module
+      const [clinicalJob, setClinicalJob] = useState({ running: false, step: 0, elapsed: "0.0", lastDuration: null });
+      const [quantumJob, setQuantumJob] = useState({ running: false, step: 0, elapsed: "0.0", lastDuration: null });
+      const [chatJob, setChatJob] = useState({ running: false, elapsed: "0.0", lastDuration: null });
+      const [finopsJob, setFinopsJob] = useState({ running: false, elapsed: "0.0", lastDuration: null });
+      const chatScrollRef = useRef(null);
+      const chatEndRef = useRef(null);
+      const anyJobRunning = clinicalJob.running || quantumJob.running || chatJob.running || finopsJob.running || loading;
+
+      // Clinical tab state
+      const [studyId, setStudyId] = useState(CLINICAL_PRESETS[0].studyId);
+      const [biomarker, setBiomarker] = useState(CLINICAL_PRESETS[0].biomarker);
+      const [protocolText, setProtocolText] = useState(CLINICAL_PRESETS[0].protocol);
+      const [clinicalResult, setClinicalResult] = useState(null);
+
+      // Quantum tab state
+      const [qStudyId, setQStudyId] = useState(QUANTUM_PRESETS[0].studyId);
+      const [smiles, setSmiles] = useState(QUANTUM_PRESETS[0].smiles);
+      const [receptor, setReceptor] = useState(QUANTUM_PRESETS[0].receptor);
+      const [numQubits, setNumQubits] = useState(QUANTUM_PRESETS[0].qubits);
+      const [ansatzLayers, setAnsatzLayers] = useState(QUANTUM_PRESETS[0].layers);
+      const [quantumResult, setQuantumResult] = useState(null);
+
+      // FDA Ledger & HITL state
+      const [ledgerRecords, setLedgerRecords] = useState([]);
+      const [integrityReport, setIntegrityReport] = useState(null);
+      const [auditAnalytics, setAuditAnalytics] = useState(null);
+      const [auditGroupMode, setAuditGroupMode] = useState("study");
+      const [hitlRecordId, setHitlRecordId] = useState("");
+      const [reviewerId, setReviewerId] = useState("MD-ROCHE-4491");
+      const [sigMeaning, setSigMeaning] = useState("Medical Monitor Safety Review & Release Approval (21 CFR 11.50)");
+      const [hitlApproved, setHitlApproved] = useState(true);
+      const [hitlNotes, setHitlNotes] = useState("Reviewed pharmacovigilance signals and confirmed cohort dose-hold protocol.");
+
+      // FinOps state
+      const [finopsStudies, setFinopsStudies] = useState([]);
+      const [finopsStudyInput, setFinopsStudyInput] = useState("STUDY-ONCO-KRAS-2026");
+      const [finopsBudgetInput, setFinopsBudgetInput] = useState(2500.0);
+      const [finopsNotice, setFinopsNotice] = useState("");
+      const [showGpuSim, setShowGpuSim] = useState(false);
+
+      // AI Guide & Scientific Assistant Multi-Turn state
+      const [personaMode, setPersonaMode] = useState("dual");
+      const [chatQuestion, setChatQuestion] = useState("");
+      const [chatMessages, setChatMessages] = useState([
+        {
+          role: "assistant",
+          turn_count: 1,
+          model_used: "dr-helix-biomed-copilot",
+          execution_tier: "READY_MULTITURN_COPILOT",
+          plain_language_summary: "👤 Welcome! I am Dr. Helix, your BioMed & Quantum R&D AI Copilot.\n\n1. What This Platform Does in Simple Terms: Developing a new medicine normally takes 10+ years and $1B+ because clinical trial safety checks and laboratory chemistry tests are slow and risky. This platform brings together 4 automated safety and discovery tools in one place:\n   • Clinical Privacy & Safety (Module 1): Automatically erases private patient names/IDs from hospital notes, summarizes the trial, and uses 3 independent AI Judges to verify zero side effects were missed.\n   • Quantum Drug Discovery (Module 2): Tests how tightly a candidate drug molecule locks into a disease protein (like KRAS-G12C in lung cancer) in seconds.\n   • Tamper-Proof FDA Vault (Module 3): Locks every result with a digital fingerprint (SHA-256) and lets a real doctor sign off electronically.\n   • Research Budget Circuit-Breaker (Module 4): Tracks every cent spent per clinical study and automatically stops overspending.",
+          scientific_deep_dive: "🔬 Principal Architect & Scientist Overview:\n\n1. Regulated Life Sciences Stack: Built on FastAPI, Pydantic v2, React 18, and SQLite PVC persistence on K3s (`NodePort 30089`), enforcing ICH E6(R3) Good Clinical Practice, HIPAA Safe Harbor, EU AI Act Annex III, and FDA 21 CFR Part 11 (§11.10 / §11.50 / §11.70).\n\n2. Mathematical & Quantum Core:\n   • Multi-Judge Consensus: Runs 3 concurrent evaluators via `asyncio.gather` (`ClinicalGroundednessJudge`, `PharmacovigilanceSafetyJudge`, `GxPComplianceJudge`) computing `S = clamp(μ_w - λσ², 0, 1)` against a `0.95` threshold.\n   • Hybrid Quantum VQE: Maps active-space orbitals onto an `N`-qubit `$2^N$` complex statevector (`RY(θ) RZ(φ)` + `CNOT` ladder) to minimize `<ψ|H|ψ> → E_0 (Ha)` and derive receptor binding free energy `ΔG (kcal/mol)`.\n   • 3-Tier Inference Routing: Connects to Tier-1 NVIDIA NIM TensorRT-LLM, Tier-2 LiteLLM Gateway (`:4001`), or Tier-3 Deterministic GxP Fallback.",
+          step_by_step_guide: [
+            "Step 1 — Choose Your Context Track: Click '+ Extend' on any of the 3 cards above to read the full explanation, or click '🎯 Focus Track' / '🎯 Continue in This Context Only' to lock future answers strictly to that track in deep detail.",
+            "Step 2 — Run Module 1 (Clinical GxP & 3x Judges): Select a clinical trial preset, pick an LLM model from the Left Sidebar, and click 'Run HIPAA Scrubber + Clinical Synthesis + 3x GxP Audit'.",
+            "Step 3 — Run Module 2 (Quantum VQE Screener): Pick a reference SMILES ligand (Sotorasib, Osimertinib, Verubecestat) and execute the 4-stage Quantum VQE binding simulation.",
+            "Step 4 — Audit & Manage Grants (Modules 3 & 4): Sign flagged records electronically in the FDA Part 11 Ledger (Module 3) and test the HTTP 402 budget circuit-breaker in Module 4."
+          ],
+          suggested_followups: [
+            "How do I use the 4 tabs step-by-step for a live demo?",
+            "Explain the Quantum VQE Molecular Screener (SMILES, Hartrees & ΔG)",
+            "What does Pharma & Quantum Grant FinOps do in Tab 4?",
+            "How do the 3 GxP Judges and FDA 21 CFR Part 11 SHA-256 chain work?"
+          ]
+        }
+      ]);
+
+      const allocateStudyGrant = async (targetStudy, targetBudget) => {
+        setLoading(true);
+        setErrorMsg("");
+        setFinopsNotice("");
+        try {
+          const res = await fetch("/v1/finops/allocate-grant", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clinical_study_id: targetStudy,
+              allocated_budget_usd: Number(targetBudget)
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(JSON.stringify(data.detail || data));
+          setFinopsNotice(`Updated R&D Grant Cap for ${data.clinical_study_id}: Allocated $${data.allocated_budget_usd.toFixed(2)} USD (Remaining: $${data.remaining_budget_usd.toFixed(4)} USD • Status: ${data.budget_status})`);
+          await refreshLedgerAndFinops();
+        } catch (err) {
+          setErrorMsg(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const simulateHttp402Guardrail = async () => {
+        setLoading(true);
+        setErrorMsg("");
+        setFinopsNotice("");
+        try {
+          const res = await fetch("/v1/clinical/synthesize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clinical_study_id: "STUDY-GUARDRAIL-DEMO-2026",
+              target_biomarker: "EGFR-L858R",
+              allocated_budget_usd: 0.0005,
+              protocol_text: "Patient: Alice Carter, MRN: ONC-119022. Phase I cohort evaluating EGFR-L858R inhibitor response with mild rash and Grade 1 diarrhea."
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            await refreshLedgerAndFinops();
+            throw new Error(`HTTP ${res.status} Financial Circuit-Breaker Triggered: ${JSON.stringify(data.detail || data)}`);
+          }
+        } catch (err) {
+          setErrorMsg(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const scrollToChatBottom = () => {
+        setTimeout(() => {
+          if (chatScrollRef.current) {
+            chatScrollRef.current.scrollTo({
+              top: chatScrollRef.current.scrollHeight,
+              behavior: "smooth"
+            });
+          }
+          if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+          }
+        }, 40);
+      };
+
+      useEffect(() => {
+        if (activeTab === "assistant") {
+          scrollToChatBottom();
+        }
+      }, [chatMessages, chatJob.running, activeTab]);
+
+      const askAssistantGuide = async (customQuestion, overrideTrack = null) => {
+        const activeTrack = overrideTrack || personaMode;
+        if (overrideTrack) setPersonaMode(overrideTrack);
+        const qToSend = (customQuestion !== undefined ? customQuestion : chatQuestion).trim();
+        if (!qToSend) return;
+        const userTurn = { role: "user", content: qToSend };
+        const updatedMessages = [...chatMessages, userTurn];
+        setChatMessages(updatedMessages);
+        setChatQuestion("");
+        setErrorMsg("");
+        scrollToChatBottom();
+
+        const startT = Date.now();
+        setChatJob({ running: true, elapsed: "0.0", lastDuration: null });
+        const timer = setInterval(() => {
+          const sec = ((Date.now() - startT) / 1000).toFixed(1);
+          setChatJob(prev => ({ ...prev, running: true, elapsed: sec }));
+        }, 100);
+
+        const apiHistory = updatedMessages.slice(0, -1).map(m => ({
+          role: m.role,
+          content: m.role === "user"
+            ? m.content
+            : `${m.plain_language_summary || ""}\n${m.scientific_deep_dive || ""}`.trim()
+        }));
+
+        try {
+          const minDelay = new Promise(r => setTimeout(r, 650));
+          const fetchPromise = fetch("/v1/assistant/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              question: qToSend,
+              history: apiHistory,
+              persona_mode: activeTrack,
+              preferred_model: selectedModel || null,
+              active_context: {
+                latest_clinical: clinicalResult?.synthesis || null,
+                latest_consensus: clinicalResult?.consensus_evaluation || null,
+                latest_quantum: quantumResult || null,
+                ledger_integrity: integrityReport || null,
+                audit_analytics: auditAnalytics || null,
+                finops_studies: finopsStudies || []
+              }
+            })
+          });
+          const [res] = await Promise.all([fetchPromise, minDelay]);
+          const data = await res.json();
+          clearInterval(timer);
+          const totalSec = ((Date.now() - startT) / 1000).toFixed(1);
+          setChatJob({ running: false, elapsed: totalSec, lastDuration: totalSec });
+          if (!res.ok) throw new Error(JSON.stringify(data.detail || data));
+          setChatMessages(prev => [
+            ...prev,
+            {
+              role: "assistant",
+              turn_count: data.turn_count,
+              model_used: data.model_used,
+              execution_tier: data.execution_tier,
+              duration_sec: totalSec,
+              locked_track: activeTrack,
+              plain_language_summary: data.plain_language_summary,
+              scientific_deep_dive: data.scientific_deep_dive,
+              step_by_step_guide: data.step_by_step_guide || [],
+              suggested_followups: data.suggested_followups || []
+            }
+          ]);
+          scrollToChatBottom();
+        } catch (err) {
+          clearInterval(timer);
+          setChatJob({ running: false, elapsed: "0.0", lastDuration: null });
+          setErrorMsg(err.message);
+        }
+      };
+
+      const selectAndContinueInTrack = (trackKey, followUpPrompt) => {
+        setPersonaMode(trackKey);
+        askAssistantGuide(followUpPrompt, trackKey);
+      };
+
+      const refreshLedgerAndFinops = async () => {
+        try {
+          const [cfgRes, modRes, ledRes, verRes, anaRes, finRes] = await Promise.all([
+            fetch("/v1/config/runtime"),
+            fetch("/v1/models"),
+            fetch("/v1/audit/ledger?limit=50"),
+            fetch("/v1/audit/verify-integrity"),
+            fetch("/v1/audit/analytics"),
+            fetch("/v1/finops/studies")
+          ]);
+          if (cfgRes.ok) setRuntimeCfg(await cfgRes.json());
+          if (modRes.ok) {
+            const mData = await modRes.json();
+            if (mData.models && mData.models.length > 0) setAvailableModels(mData.models);
+          }
+          if (ledRes.ok) {
+            const recs = await ledRes.json();
+            setLedgerRecords(recs);
+            if (!hitlRecordId && recs.length > 0) setHitlRecordId(recs[0].record_id);
+          }
+          if (verRes.ok) setIntegrityReport(await verRes.json());
+          if (anaRes.ok) setAuditAnalytics(await anaRes.json());
+          if (finRes.ok) setFinopsStudies(await finRes.json());
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      useEffect(() => { refreshLedgerAndFinops(); }, []);
+
+      const runClinicalSynthesis = async () => {
+        setErrorMsg("");
+        const startT = Date.now();
+        setClinicalJob({ running: true, step: 1, elapsed: "0.0", lastDuration: null });
+        const timer = setInterval(() => {
+          const sec = (Date.now() - startT) / 1000;
+          let st = 1;
+          if (sec >= 1.2) st = 5;
+          else if (sec >= 0.9) st = 4;
+          else if (sec >= 0.55) st = 3;
+          else if (sec >= 0.25) st = 2;
+          setClinicalJob(prev => ({ ...prev, running: true, step: st, elapsed: sec.toFixed(1) }));
+        }, 100);
+
+        try {
+          const minFlow = new Promise(r => setTimeout(r, 1450));
+          const fetchPromise = fetch("/v1/clinical/synthesize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clinical_study_id: studyId,
+              target_biomarker: biomarker,
+              protocol_text: protocolText,
+              preferred_model: selectedModel || null
+            })
+          });
+          const [res] = await Promise.all([fetchPromise, minFlow]);
+          const data = await res.json();
+          clearInterval(timer);
+          const totalSec = ((Date.now() - startT) / 1000).toFixed(1);
+          setClinicalJob({ running: false, step: 5, elapsed: totalSec, lastDuration: totalSec });
+          if (!res.ok) throw new Error(JSON.stringify(data.detail || data));
+          setClinicalResult(data);
+          setHitlRecordId(data.fda_part11_record.record_id);
+          setChatMessages(prev => [
+            ...prev,
+            {
+              role: "assistant",
+              turn_count: prev.length + 1,
+              model_used: data.synthesis.model_used,
+              execution_tier: data.synthesis.execution_tier,
+              duration_sec: totalSec,
+              plain_language_summary: `👤 Clinical Trial Run Completed in ${totalSec}s (${data.clinical_study_id} • ${data.target_biomarker}): Redacted ${data.privacy_audit.total_redactions} private patient identifiers (HIPAA). The 3 AI Judges scored ${data.consensus_evaluation.consensus_score} → Status: ${data.consensus_evaluation.governance_status}.`,
+              scientific_deep_dive: `🔬 FDA Part 11 Block ${data.fda_part11_record.record_id} chained (SHA-256: ${data.fda_part11_record.current_hash.slice(0, 18)}...). Extracted ${data.synthesis.extracted_adverse_events.length} adverse event signal(s). Grant Remaining: $${data.remaining_study_budget_usd}.`,
+              step_by_step_guide: [
+                "Ask me follow-up questions in Tab 5 (Dr. Helix Chat) about why the judges gave this score.",
+                "If status is PENDING_HITL_MEDICAL_REVIEW, open Tab 3 (FDA Part 11 Ledger) to sign off electronically."
+              ],
+              suggested_followups: [
+                "Why did the 3 GxP Judges give this consensus score?",
+                "How do I electronically sign this record in Tab 3?",
+                "Screen a candidate molecule for this receptor in Tab 2"
+              ]
+            }
+          ]);
+          await refreshLedgerAndFinops();
+        } catch (err) {
+          clearInterval(timer);
+          setClinicalJob({ running: false, step: 0, elapsed: "0.0", lastDuration: null });
+          setErrorMsg(err.message);
+        }
+      };
+
+      const runQuantumScreen = async () => {
+        setErrorMsg("");
+        const startT = Date.now();
+        setQuantumJob({ running: true, step: 1, elapsed: "0.0", lastDuration: null });
+        const timer = setInterval(() => {
+          const sec = (Date.now() - startT) / 1000;
+          let st = 1;
+          if (sec >= 1.05) st = 4;
+          else if (sec >= 0.70) st = 3;
+          else if (sec >= 0.35) st = 2;
+          setQuantumJob(prev => ({ ...prev, running: true, step: st, elapsed: sec.toFixed(1) }));
+        }, 100);
+
+        try {
+          const minFlow = new Promise(r => setTimeout(r, 1300));
+          const fetchPromise = fetch("/v1/quantum/screen-molecule", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clinical_study_id: qStudyId,
+              molecule_smiles: smiles,
+              target_receptor: receptor,
+              num_qubits: Number(numQubits),
+              ansatz_layers: Number(ansatzLayers)
+            })
+          });
+          const [res] = await Promise.all([fetchPromise, minFlow]);
+          const data = await res.json();
+          clearInterval(timer);
+          const totalSec = ((Date.now() - startT) / 1000).toFixed(1);
+          setQuantumJob({ running: false, step: 4, elapsed: totalSec, lastDuration: totalSec });
+          if (!res.ok) throw new Error(JSON.stringify(data.detail || data));
+          setQuantumResult(data);
+          setHitlRecordId(data.fda_part11_record.record_id);
+          setChatMessages(prev => [
+            ...prev,
+            {
+              role: "assistant",
+              turn_count: prev.length + 1,
+              model_used: data.quantum_backend_used,
+              execution_tier: "QUANTUM_VQE_SIMULATOR",
+              duration_sec: totalSec,
+              plain_language_summary: `👤 Quantum VQE Drug Screen Completed in ${totalSec}s (${data.target_receptor}): Your candidate molecule achieved a binding strength of ${data.binding_affinity_kcal_mol} kcal/mol and ground-state energy ${data.vqe_ground_state_energy_hartree} Ha. Verdict: ${data.drug_likeness_verdict}.`,
+              scientific_deep_dive: `🔬 Executed ${data.num_qubits}-qubit, ${data.ansatz_layers}-layer RY/RZ + CNOT ansatz (depth=${data.circuit_depth}, CNOTs=${data.cnot_entangling_gates}). Dominant bitstring |${data.dominant_bitstring}⟩ (${(data.dominant_state_probability * 100).toFixed(1)}%). Logged to FDA Part 11 record ${data.fda_part11_record.record_id}.`,
+              step_by_step_guide: [
+                "Open Tab 5 (Dr. Helix Chat) to ask follow-up questions about this molecule's VQE trajectory.",
+                "Open Tab 4 (Grant FinOps) to inspect the quantum compute chargeback."
+              ],
+              suggested_followups: [
+                "Explain the Quantum VQE Molecular Screener (SMILES, Hartrees & ΔG)",
+                "What does Pharma & Quantum Grant FinOps do in Tab 4?"
+              ]
+            }
+          ]);
+          await refreshLedgerAndFinops();
+        } catch (err) {
+          clearInterval(timer);
+          setQuantumJob({ running: false, step: 0, elapsed: "0.0", lastDuration: null });
+          setErrorMsg(err.message);
+        }
+      };
+
+      const submitHitlSignature = async () => {
+        if (!hitlRecordId) return;
+        setLoading(true);
+        setErrorMsg("");
+        try {
+          const res = await fetch("/v1/hitl/sign-record", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              record_id: hitlRecordId,
+              medical_reviewer_id: reviewerId,
+              electronic_signature_meaning: sigMeaning,
+              approved: hitlApproved,
+              reviewer_notes: hitlNotes
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(JSON.stringify(data.detail || data));
+          await refreshLedgerAndFinops();
+        } catch (err) {
+          setErrorMsg(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const quantumWorkbenchUrl = (runtimeCfg?.sibling_gqa_workbench_url && !runtimeCfg.sibling_gqa_workbench_url.includes("localhost"))
+        ? runtimeCfg.sibling_gqa_workbench_url
+        : `http://${window.location.hostname || "localhost"}:30088`;
+
+      const NAV_ITEMS = [
+        { id: "clinical", icon: "🧪", short: "1. Clinical GxP & Judges", badge: clinicalJob.running ? `⚡ ${clinicalJob.elapsed}s` : "HIPAA + 3x AI", running: clinicalJob.running, accent: "from-cyan-500 to-sky-500" },
+        { id: "quantum", icon: "⚛️", short: "2. Quantum VQE Screener", badge: quantumJob.running ? `⚡ ${quantumJob.elapsed}s` : "SMILES → ΔG", running: quantumJob.running, accent: "from-purple-500 to-indigo-500" },
+        { id: "ledger", icon: "🛡️", short: "3. FDA Part 11 Ledger", badge: "SHA-256 + HITL", running: false, accent: "from-emerald-500 to-teal-500" },
+        { id: "finops", icon: "💰", short: "4. Pharma & Quantum FinOps", badge: finopsJob.running ? `⚡ ${finopsJob.elapsed}s` : "Grant Caps", running: finopsJob.running, accent: "from-amber-500 to-orange-500" },
+        { id: "assistant", icon: "🤖", short: "5. Dr. Helix Multi-Turn Chat", badge: chatJob.running ? `⚡ ${chatJob.elapsed}s` : `${chatMessages.length} turns`, running: chatJob.running, accent: "from-sky-400 to-indigo-500" }
+      ];
+      const currentNav = NAV_ITEMS.find(n => n.id === activeTab) || NAV_ITEMS[0];
+
+      return (
+        <div className={`app-shell min-h-screen flex flex-col lg:flex-row bg-[#080f1e] text-slate-100 ${themeMode === "light" ? "light-theme" : ""}`}>
+          {/* LEFT SIDEBAR NAVIGATION */}
+          <aside className="w-full lg:w-72 bg-[#0c162c] border-b lg:border-b-0 lg:border-r border-slate-800/90 p-4 flex flex-col justify-between shrink-0">
+            <div className="space-y-5">
+              <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-slate-900/90 border border-cyan-500/30">
+                <DrHelixAvatar size="md" thinking={anyJobRunning} />
+                <div>
+                  <div className="text-[11px] font-mono uppercase tracking-wider text-cyan-400">AI-Governance-Lab</div>
+                  <div className="text-sm font-bold text-white leading-tight">Quantum BioMed R&D</div>
+                  <div className="text-[11px] text-emerald-400 font-mono">GxP • FDA Part 11 • VQE</div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">R&D Modules (Left Menu)</div>
+                {NAV_ITEMS.map(item => {
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition ${
+                        isActive
+                          ? `bg-gradient-to-r ${item.accent} text-slate-950 font-bold shadow-lg`
+                          : "bg-slate-900/60 hover:bg-slate-800/80 text-slate-200 border border-slate-800"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 truncate">
+                        <span className="text-base">{item.icon}</span>
+                        <span className="truncate">{item.short}</span>
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${
+                        isActive ? "bg-slate-950/25 text-slate-950 font-bold" : "bg-slate-800 text-slate-300"
+                      }`}>
+                        {item.badge}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3 text-xs">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-300">Global AI & Explanation Controls</div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">LLM Gateway Model (:4001)</label>
+                  <select
+                    value={selectedModel}
+                    onChange={e => setSelectedModel(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-cyan-500/40 text-[11px] font-mono text-cyan-200"
+                  >
+                    {availableModels.map(m => (
+                      <option key={m.id} value={m.id}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Explanation Persona Mode</label>
+                  <select
+                    value={personaMode}
+                    onChange={e => setPersonaMode(e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-purple-500/40 text-[11px] font-semibold text-purple-200"
+                  >
+                    <option value="dual">🌍 All 3 Tracks (Preview + Extend Any)</option>
+                    <option value="plain">1. 👤 Everyday Plain-Language Track Only</option>
+                    <option value="scientist">2. 🔬 Scientist & GxP Architect Track Only</option>
+                    <option value="steps">3. 🧭 Step-by-Step Practical Guide Track Only</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 mt-4 border-t border-slate-800/80 space-y-1.5 text-xs">
+              <div className="px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Connected Lab Links</div>
+              <a href="/docs" target="_blank" className="flex items-center justify-between px-3 py-2 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-200 font-semibold">
+                <span>⚙️ Backend Swagger (/docs)</span>
+                <span>↗</span>
+              </a>
+              <a href={quantumWorkbenchUrl} target="_blank" className="flex items-center justify-between px-3 py-2 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-200 font-semibold">
+                <span>⚛️ Venus Quantum App (:30088)</span>
+                <span>↗</span>
+              </a>
+              <a href={runtimeCfg?.sibling_private_hub_url || "http://localhost:8080"} target="_blank" className="flex items-center justify-between px-3 py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-200 font-semibold">
+                <span>🏢 Private AI Hub (:8080)</span>
+                <span>↗</span>
+              </a>
+            </div>
+          </aside>
+
+          {/* MAIN WORKSPACE + TOP MENU BAR */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <header className="bg-[#0f1b35]/95 border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20 backdrop-blur">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{currentNav.icon}</span>
+                <div>
+                  <div className="text-[11px] font-mono uppercase tracking-wider text-cyan-400">
+                    Quantum BioMed Research & GxP Governance Engine • FDA 21 CFR Part 11 • HIPAA
+                  </div>
+                  <h1 className="text-lg md:text-xl font-bold text-white">{currentNav.short}</h1>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <button
+                  onClick={() => setThemeMode(themeMode === "dark" ? "light" : "dark")}
+                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-semibold transition"
+                  title="Switch between Dark Mode and Light Mode"
+                >
+                  {themeMode === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+                </button>
+                <span className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono">
+                  🛡️ SHA-256: {integrityReport?.verified ? "VERIFIED" : "CHECKING"} ({integrityReport?.total_records_checked || 0} blocks)
+                </span>
+                <span className="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 font-mono">
+                  💰 Active Grants: {finopsStudies.length}
+                </span>
+                <a href="/readyz" target="_blank" className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-semibold">
+                  🩺 Readiness ↗
+                </a>
+                <button
+                  onClick={() => setActiveTab("assistant")}
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 font-bold shadow"
+                >
+                  <span>🤖 Ask Dr. Helix ({chatMessages.length})</span>
+                </button>
+              </div>
+            </header>
+
+            <main className="flex-1 p-5 md:p-6 max-w-7xl w-full mx-auto space-y-5">
+
+          {errorMsg && (
+            <div className="mb-6 p-4 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs font-mono">
+              <strong>Operational / FinOps Guardrail Alert:</strong> {errorMsg}
+            </div>
+          )}
+
+          {activeTab === "clinical" && (
+            <div className="space-y-5">
+              <div className="glass rounded-2xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs border-l-4 border-cyan-400">
+                <div className="space-y-1">
+                  <div className="font-bold text-cyan-300 uppercase tracking-wider">👤 In Everyday Terms (For Anyone / HR / Executives)</div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Before AI reads a medical trial note, this module automatically erases private patient details (names, SSNs, hospital IDs) to protect privacy (HIPAA/GDPR). Then AI summarizes the trial, and <strong>3 independent digital inspectors (AI Judges)</strong> check in parallel that zero side effects were hidden and nothing was hallucinated.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <div className="font-bold text-purple-300 uppercase tracking-wider">🔬 For the Scientist & GxP Architect</div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Executes deterministic HIPAA Safe Harbor de-identification (<code>PHIScrubber</code>), 3-Tier LLM synthesis with mandatory paragraph-level anchors (<code>[CIT-P1]</code>, <code>[CIT-P2]</code>), and 3 concurrent evaluators via <code>asyncio.gather</code> (<code>ClinicalGroundednessJudge</code>, <code>PharmacovigilanceSafetyJudge</code>, <code>GxPComplianceJudge</code>) with variance penalty (<code>S = μ_w - λσ² ≥ 0.95</code>).
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-5 glass rounded-2xl p-5 space-y-4">
+                <h2 className="text-lg font-bold text-white">Clinical Trial Protocol Input</h2>
+                <div className="space-y-2">
+                  <span className="text-xs text-slate-400 uppercase font-semibold">Load Validated Clinical Preset:</span>
+                  <div className="grid grid-cols-1 gap-2">
+                    {CLINICAL_PRESETS.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => { setStudyId(p.studyId); setBiomarker(p.biomarker); setProtocolText(p.protocol); }}
+                        className="text-left p-2.5 rounded-lg glass-card hover:border-cyan-400/50 transition text-xs"
+                      >
+                        <div className="font-semibold text-cyan-300">{p.badge}</div>
+                        <div className="text-slate-400 font-mono">{p.studyId} • Target: {p.biomarker}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">AI Gateway / Foundation Model Selection</label>
+                  <select
+                    value={selectedModel}
+                    onChange={e => setSelectedModel(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-cyan-500/40 text-xs font-mono text-cyan-200"
+                  >
+                    {availableModels.map(m => (
+                      <option key={m.id} value={m.id}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Clinical Study Grant ID</label>
+                  <input value={studyId} onChange={e => setStudyId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-mono" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Target Biomarker / Receptor</label>
+                  <input value={biomarker} onChange={e => setBiomarker(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-mono" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Raw Clinical Protocol Excerpt (Contains PHI)</label>
+                  <textarea rows="6" value={protocolText} onChange={e => setProtocolText(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono" />
+                </div>
+                <button
+                  onClick={runClinicalSynthesis}
+                  disabled={clinicalJob.running}
+                  className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-60 text-slate-950 font-bold text-sm transition"
+                >
+                  {clinicalJob.running ? `⚡ Executing Stage ${clinicalJob.step}/5 (${clinicalJob.elapsed}s)...` : "Run HIPAA Scrubber + Clinical Synthesis + 3x GxP Audit"}
+                </button>
+              </div>
+
+
+
+              <div className="lg:col-span-7 space-y-4">
+                <PipelineFlowCard
+                  title="Clinical Protocol Synthesis & 3x GxP Audit"
+                  stages={CLINICAL_PIPELINE_STAGES}
+                  job={clinicalJob}
+                />
+                {!clinicalResult ? (
+                  <div className="glass rounded-2xl p-8 text-center text-slate-400 text-sm">
+                    {clinicalJob.running
+                      ? `⚡ Pipeline running in background (Stage ${clinicalJob.step}/5 • ${clinicalJob.elapsed}s). You can freely switch menus and return here at any time.`
+                      : "Select a clinical trial preset on the left and click Run HIPAA Scrubber + Clinical Synthesis + 3x GxP Audit to inspect the full pipeline."}
+                  </div>
+                ) : (
+                  <>
+                    <div className="glass rounded-2xl p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-400">
+                          Step 1: HIPAA / GDPR Deterministic PHI Scrubber ({clinicalResult.privacy_audit.total_redactions} Redactions)
+                        </h3>
+                        <span className="text-xs font-mono text-slate-400">
+                          SHA256: {clinicalResult.privacy_audit.scrubbed_sha256.slice(0, 16)}...
+                        </span>
+                      </div>
+                      <p className="text-xs font-mono bg-slate-950/90 p-3 rounded-lg text-slate-300 border border-slate-800">
+                        {clinicalResult.privacy_audit.scrubbed_text}
+                      </p>
+                    </div>
+
+                    <div className="glass rounded-2xl p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-400">
+                          Step 2: GxP Clinical Synthesis ({clinicalResult.synthesis.execution_tier} • Model: {clinicalResult.synthesis.model_used})
+                        </h3>
+                        <span className="text-xs font-mono text-emerald-300">
+                          Tx Cost: ${clinicalResult.finops_tx_cost_usd} | Grant Remaining: ${clinicalResult.remaining_study_budget_usd}
+                        </span>
+                      </div>
+                      <pre className="text-xs whitespace-pre-wrap font-sans bg-slate-950/80 p-3.5 rounded-lg text-slate-200 border border-slate-800">
+                        {clinicalResult.synthesis.executive_clinical_synthesis}
+                      </pre>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div className="glass-card p-3 rounded-lg">
+                          <div className="font-semibold text-amber-300 mb-1">Extracted Adverse Events:</div>
+                          <ul className="list-disc list-inside text-slate-300 space-y-0.5">
+                            {clinicalResult.synthesis.extracted_adverse_events.map((ae, i) => <li key={i}>{ae}</li>)}
+                          </ul>
+                        </div>
+                        <div className="glass-card p-3 rounded-lg">
+                          <div className="font-semibold text-cyan-300 mb-1">Contraindications & Guardrails:</div>
+                          <ul className="list-disc list-inside text-slate-300 space-y-0.5">
+                            {clinicalResult.synthesis.contraindications_and_warnings.map((c, i) => <li key={i}>{c}</li>)}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="glass rounded-2xl p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-purple-400">
+                          Step 3: 3x Concurrent GxP Multi-Judge Consensus (Score: {clinicalResult.consensus_evaluation.consensus_score})
+                        </h3>
+                        <span className={`px-2.5 py-1 rounded text-xs font-mono font-bold ${
+                          clinicalResult.consensus_evaluation.governance_status === "APPROVED_AUTONOMOUS"
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                            : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                        }`}>
+                          {clinicalResult.consensus_evaluation.governance_status}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {clinicalResult.consensus_evaluation.judges.map((j, i) => (
+                          <div key={i} className="glass-card p-3 rounded-lg text-xs">
+                            <div className="font-bold text-white">{j.judge_name}</div>
+                            <div className="font-mono text-cyan-300 my-1">Score: {j.score} (w={j.weight})</div>
+                            <div className="text-slate-400">{j.findings.join(" ")}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="text-xs font-mono text-slate-400 pt-1">
+                        FDA Part 11 Record: <span className="text-white">{clinicalResult.fda_part11_record.record_id}</span> • Chain Hash: {clinicalResult.fda_part11_record.current_hash.slice(0, 24)}...
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              </div>
+            </div>
+          )}
+
+
+          {activeTab === "quantum" && (
+            <div className="space-y-5">
+              <div className="glass rounded-2xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs border-l-4 border-purple-400">
+                <div className="space-y-1">
+                  <div className="font-bold text-cyan-300 uppercase tracking-wider">👤 In Everyday Terms (For Anyone / HR / Executives)</div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Testing a new cancer or Alzheimer drug in a physical lab takes years. Here, you pick a candidate drug molecule (written as a <code>SMILES</code> chemical formula) and a disease protein target (like <code>KRAS-G12C</code>). The <strong>Quantum Simulator</strong> acts like a subatomic microscope: it calculates in seconds how tightly the drug key locks into the disease protein (<strong>ΔG in kcal/mol</strong> — more negative means a stronger fit).
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <div className="font-bold text-purple-300 uppercase tracking-wider">🔬 For the Computational Chemist & Quantum Scientist</div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Maps active-space molecular orbitals onto an <code>N</code>-qubit complex statevector (<code>2^N</code> Hilbert space). Executes a hardware-efficient Variational Quantum Eigensolver (<strong>VQE</strong>) ansatz with parameterized single-qubit rotations <code>RY(θ)</code>, <code>RZ(φ)</code> and a linear <code>CNOT</code> entanglement ladder to minimize electronic ground-state energy <code>E_0</code> (Hartrees) and derive receptor binding free energy <code>ΔG</code>.
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-5 glass rounded-2xl p-5 space-y-4">
+                <h2 className="text-lg font-bold text-white">Hybrid Quantum VQE Molecular Screener</h2>
+                <div className="space-y-2">
+                  <span className="text-xs text-slate-400 uppercase font-semibold">Select Reference Drug Candidate (SMILES):</span>
+                  <div className="grid grid-cols-1 gap-2">
+                    {QUANTUM_PRESETS.map(qp => (
+                      <button
+                        key={qp.id}
+                        onClick={() => { setQStudyId(qp.studyId); setSmiles(qp.smiles); setReceptor(qp.receptor); setNumQubits(qp.qubits); setAnsatzLayers(qp.layers); }}
+                        className="text-left p-2.5 rounded-lg glass-card hover:border-cyan-400/50 transition text-xs"
+                      >
+                        <div className="font-semibold text-cyan-300">{qp.name}</div>
+                        <div className="text-slate-400 font-mono">{qp.receptor} • {qp.qubits} Qubits / {qp.layers} Layers</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Clinical Study Grant ID</label>
+                  <input value={qStudyId} onChange={e => setQStudyId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-mono" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Target Protein Receptor</label>
+                  <input value={receptor} onChange={e => setReceptor(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-mono" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Ligand Canonical SMILES</label>
+                  <textarea rows="3" value={smiles} onChange={e => setSmiles(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Active-Space Qubits (2-12)</label>
+                    <input type="number" min="2" max="12" value={numQubits} onChange={e => setNumQubits(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">RY/RZ + CNOT Layers (1-8)</label>
+                    <input type="number" min="1" max="8" value={ansatzLayers} onChange={e => setAnsatzLayers(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-mono" />
+                  </div>
+                </div>
+                <button
+                  onClick={runQuantumScreen}
+                  disabled={quantumJob.running}
+                  className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-60 text-slate-950 font-bold text-sm transition"
+                >
+                  {quantumJob.running ? `⚡ Simulating Stage ${quantumJob.step}/4 (${quantumJob.elapsed}s)...` : "Execute Hybrid Quantum VQE Screening"}
+                </button>
+              </div>
+
+
+
+
+              <div className="lg:col-span-7 space-y-4">
+                <PipelineFlowCard
+                  title="Hybrid Quantum VQE Molecular Screening"
+                  stages={QUANTUM_PIPELINE_STAGES}
+                  job={quantumJob}
+                />
+                {!quantumResult ? (
+                  <div className="glass rounded-2xl p-8 text-center text-slate-400 text-sm">
+                    {quantumJob.running
+                      ? `⚡ Quantum VQE simulation running in background (Stage ${quantumJob.step}/4 • ${quantumJob.elapsed}s). You can switch menus and return here anytime.`
+                      : "Select a reference SMILES ligand and click Execute Hybrid Quantum VQE Screening to compute VQE ground-state energy and receptor binding affinity."}
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="glass-card p-3.5 rounded-xl">
+                        <div className="text-xs text-slate-400">VQE Ground Energy</div>
+                        <div className="text-lg font-bold font-mono text-cyan-300">{quantumResult.vqe_ground_state_energy_hartree} Ha</div>
+                      </div>
+                      <div className="glass-card p-3.5 rounded-xl">
+                        <div className="text-xs text-slate-400">Binding Affinity (ΔG)</div>
+                        <div className="text-lg font-bold font-mono text-emerald-300">{quantumResult.binding_affinity_kcal_mol} kcal/mol</div>
+                      </div>
+                      <div className="glass-card p-3.5 rounded-xl">
+                        <div className="text-xs text-slate-400">Affinity Score / Depth</div>
+                        <div className="text-lg font-bold font-mono text-purple-300">{quantumResult.binding_affinity_score} (d={quantumResult.circuit_depth})</div>
+                      </div>
+                      <div className="glass-card p-3.5 rounded-xl">
+                        <div className="text-xs text-slate-400">Dominant Bitstring</div>
+                        <div className="text-lg font-bold font-mono text-amber-300">|{quantumResult.dominant_bitstring}⟩ ({(quantumResult.dominant_state_probability * 100).toFixed(1)}%)</div>
+                      </div>
+                    </div>
+
+                    <VqeTrajectoryChart trajectory={quantumResult.convergence_trajectory_hartree} />
+
+                    <div className="glass rounded-2xl p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-400">
+                          Hardware-Efficient Ansatz ({quantumResult.quantum_backend_used})
+                        </h3>
+                        <span className="text-xs font-mono text-emerald-300">
+                          Screening Cost: ${quantumResult.finops_screening_cost_usd} | Remaining: ${quantumResult.remaining_study_budget_usd}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-emerald-300">{quantumResult.drug_likeness_verdict}</p>
+                      <pre className="text-xs font-mono overflow-x-auto bg-slate-950/90 p-3 rounded-lg text-cyan-200 border border-slate-800">
+                        {quantumResult.circuit_diagram_ascii}
+                      </pre>
+                    </div>
+                  </>
+                )}
+              </div>
+              </div>
+            </div>
+          )}
+
+
+
+          {activeTab === "ledger" && (
+            <div className="space-y-5">
+              <div className="glass rounded-2xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs border-l-4 border-emerald-400">
+                <div className="space-y-1">
+                  <div className="font-bold text-cyan-300 uppercase tracking-wider">👤 In Everyday Terms (For Anyone / HR / Executives)</div>
+                  <p className="text-slate-300 leading-relaxed">
+                    In pharmaceutical trials, it is illegal to secretly edit or delete test results. Every AI summary and Quantum drug screen is locked into this <strong>tamper-proof digital vault</strong>. Each record's fingerprint (<code>SHA-256 hash</code>) depends on the previous one. When a high-risk safety alert occurs, a real doctor (<strong>Human-in-the-Loop</strong>) must electronically sign off here.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <div className="font-bold text-purple-300 uppercase tracking-wider">🔬 For the Regulatory & FDA 21 CFR Part 11 Auditor</div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Implements <strong>FDA 21 CFR Part 11 (§11.10 / §11.50 / §11.70)</strong> & EU AI Act Annex III auditability via SQLite persistence with cryptographic hash chaining: <code>current_hash = sha256(previous_hash || timestamp_utc || study_id || scrubbed_hash || output || score || signature_hash)</code>. Supports live mathematical tamper verification across all blocks.
+                  </p>
+                </div>
+              </div>
+
+              {auditAnalytics && (
+                <div className="glass rounded-2xl p-5 space-y-4 border border-cyan-500/30">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-300">
+                        📊 Memory-Aware 3x Judge Historical Analytics (Overall Mean: {auditAnalytics.overall_average_score_pct}% across {auditAnalytics.total_evaluated_records} records)
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Grouped average consensus & binding scores across Clinical Studies, Evaluation Types, and Target Biomarkers.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 text-xs">
+                      {[
+                        { id: "study", label: "Group by Clinical Study" },
+                        { id: "type", label: "Group by Evaluation Type" },
+                        { id: "biomarker", label: "Group by Biomarker / Receptor" }
+                      ].map(g => (
+                        <button
+                          key={g.id}
+                          onClick={() => setAuditGroupMode(g.id)}
+                          className={`px-3 py-1 rounded-lg font-semibold transition ${
+                            auditGroupMode === g.id
+                              ? "bg-cyan-500 text-slate-950"
+                              : "bg-slate-900 text-slate-300 border border-slate-700"
+                          }`}
+                        >
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                    {(auditGroupMode === "study"
+                      ? auditAnalytics.grouped_by_study
+                      : auditGroupMode === "type"
+                      ? auditAnalytics.grouped_by_record_type
+                      : auditAnalytics.grouped_by_biomarker
+                    ).map((grp, gIdx) => (
+                      <div key={gIdx} className="glass-card p-3.5 rounded-xl space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono font-bold text-cyan-300 truncate">{grp.group}</span>
+                          <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">{grp.count} run(s)</span>
+                        </div>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-slate-400">Group Average Score:</span>
+                          <span className="text-base font-extrabold font-mono text-emerald-300">{grp.avg_score_pct}%</span>
+                        </div>
+                        <div className="text-[11px] font-mono text-slate-400 flex justify-between">
+                          <span>Min: {grp.min_score_pct}%</span>
+                          <span>Max: {grp.max_score_pct}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-4 glass rounded-2xl p-5 space-y-4">
+                <h2 className="text-lg font-bold text-white">FDA 21 CFR Part 11 HITL E-Signature</h2>
+                <p className="text-xs text-slate-400">
+                  Per 21 CFR §11.50 & §11.70, signed electronic records append an immutable cryptographic block linking reviewer identity, signature meaning, and UTC timestamp to the target record hash.
+                </p>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Target FDA Part 11 Record ID</label>
+                  <input value={hitlRecordId} onChange={e => setHitlRecordId(e.target.value)} placeholder="FDA11-..." className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-mono" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Medical Reviewer / Investigator ID</label>
+                  <input value={reviewerId} onChange={e => setReviewerId(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-mono" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Electronic Signature Meaning (§11.50)</label>
+                  <input value={sigMeaning} onChange={e => setSigMeaning(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono" />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Adjudication Decision</label>
+                  <select value={hitlApproved ? "approve" : "reject"} onChange={e => setHitlApproved(e.target.value === "approve")} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm">
+                    <option value="approve">APPROVE — Release Clinical Record</option>
+                    <option value="reject">REJECT — Quarantine Clinical Record</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">Medical Monitor Clinical Addendum</label>
+                  <textarea rows="2" value={hitlNotes} onChange={e => setHitlNotes(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono" />
+                </div>
+                <button
+                  onClick={submitHitlSignature}
+                  disabled={loading || !hitlRecordId}
+                  className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm transition"
+                >
+                  Append Cryptographic Electronic Signature
+                </button>
+              </div>
+
+              <div className="lg:col-span-8 glass rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Immutable SHA-256 Hash-Chain Audit Ledger</h2>
+                    <p className="text-xs text-slate-400">
+                      Genesis Hash: <span className="font-mono text-cyan-300">{integrityReport?.genesis_hash?.slice(0, 20)}...</span> • Latest Hash: <span className="font-mono text-emerald-300">{integrityReport?.latest_hash?.slice(0, 20)}...</span>
+                    </p>
+                  </div>
+                  <button onClick={refreshLedgerAndFinops} className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 text-xs font-semibold">
+                    Verify SHA-256 Chain Integrity
+                  </button>
+                </div>
+
+                <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
+                  {ledgerRecords.length === 0 ? (
+                    <div className="text-xs text-slate-400 p-6 text-center glass-card rounded-xl">
+                      No audit records yet. Run a Clinical Synthesis or Quantum Screening to populate the FDA Part 11 Ledger.
+                    </div>
+                  ) : (
+                    ledgerRecords.map(rec => (
+                      <div key={rec.record_id} onClick={() => setHitlRecordId(rec.record_id)} className="cursor-pointer glass-card p-3.5 rounded-xl hover:border-cyan-400/50 transition text-xs space-y-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-mono font-bold text-cyan-300">#{rec.sequence_id} • {rec.record_id} ({rec.record_type})</span>
+                          <span className="px-2 py-0.5 rounded bg-slate-800 text-emerald-300 font-mono">{rec.governance_status}</span>
+                        </div>
+                        <div className="text-slate-300">
+                          Study: <span className="font-mono">{rec.clinical_study_id}</span> • Target: <span className="font-mono">{rec.target_biomarker_or_receptor}</span> • Score: <span className="font-mono">{rec.consensus_score}</span>
+                        </div>
+                        <div className="text-slate-400 truncate">{rec.synthesis_output}</div>
+                        <div className="font-mono text-[11px] text-slate-500">
+                          prev: {rec.previous_hash.slice(0, 18)}... → curr: {rec.current_hash.slice(0, 18)}...
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              </div>
+            </div>
+          )}
+
+
+
+          {activeTab === "finops" && (
+            <div className="space-y-6">
+              <div className="glass rounded-2xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs border-l-4 border-amber-400">
+                <div className="space-y-1">
+                  <div className="font-bold text-cyan-300 uppercase tracking-wider">👤 In Everyday Terms: What is Pharma & Quantum FinOps?</div>
+                  <p className="text-slate-300 leading-relaxed">
+                    Every clinical trial or drug discovery project receives a fixed research budget (grant, e.g. <code>$2,500</code>). If an AI agent or quantum simulator runs in a loop overnight, it could burn thousands of dollars. This module is a <strong>financial circuit-breaker</strong>: it counts every fraction of a cent spent on AI tokens and quantum runs per study, lets you adjust budgets below, and <strong>automatically blocks overspending (HTTP 402)</strong>.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <div className="font-bold text-purple-300 uppercase tracking-wider">🔬 For the R&D FinOps & Cloud/GPU Platform Architect</div>
+                  <p className="text-slate-300 leading-relaxed">
+                    SQLite-backed Chargeback/Showback controller metering prompt/completion token spend (Synthesis + 3x GxP Judges) and quantum statevector volume (<code>num_qubits × circuit_depth</code>) per <code>clinical_study_id</code>. Enforces hard HTTP 402 grant caps and benchmarks Sovereign LiteLLM + Ephemeral GCP Spot L4 GPU NIM economics (<code>$0.28/h</code> Spot vs <code>$0.95/h</code> On-Demand = <strong>70.5% savings</strong>).
+                  </p>
+                </div>
+              </div>
+
+              {finopsNotice && (
+                <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-200 text-xs font-mono">
+                  <strong>FinOps Grant Controller:</strong> {finopsNotice}
+                </div>
+              )}
+
+              <div className="glass rounded-2xl p-5 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Interactive R&D Study Grant Allocation & Guardrail Controls</h2>
+                    <p className="text-xs text-slate-400">Create a new clinical study grant, update an existing budget cap, or test the HTTP 402 financial circuit-breaker live.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <button
+                      onClick={() => { setFinopsBudgetInput(2500); allocateStudyGrant(finopsStudyInput, 2500); }}
+                      className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 font-semibold"
+                    >
+                      💵 Set $2,500 Standard Grant
+                    </button>
+                    <button
+                      onClick={() => { setFinopsBudgetInput(5000); allocateStudyGrant(finopsStudyInput, 5000); }}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-200 font-semibold"
+                    >
+                      🚀 Set $5,000 Phase II Grant
+                    </button>
+                    <button
+                      onClick={simulateHttp402Guardrail}
+                      className="px-3 py-1.5 rounded-lg bg-rose-500/25 hover:bg-rose-500/40 border border-rose-500/50 text-rose-200 font-semibold"
+                    >
+                      🚨 Simulate Runaway Spend (Test HTTP 402 Guardrail)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Clinical Study Grant ID</label>
+                    <input value={finopsStudyInput} onChange={e => setFinopsStudyInput(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Allocated Grant Cap (USD)</label>
+                    <input type="number" step="100" value={finopsBudgetInput} onChange={e => setFinopsBudgetInput(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs font-mono" />
+                  </div>
+                  <button
+                    onClick={() => allocateStudyGrant(finopsStudyInput, finopsBudgetInput)}
+                    disabled={loading}
+                    className="py-2.5 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition"
+                  >
+                    💰 Allocate / Update Study Grant Cap
+                  </button>
+                </div>
+              </div>
+              <div className="glass rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-white">Active Clinical Study & Quantum Discovery Grants</h2>
+                  <button onClick={refreshLedgerAndFinops} className="px-3 py-1.5 rounded-lg glass-card hover:border-cyan-400 text-xs text-cyan-300 font-semibold">
+                    🔄 Refresh FinOps Telemetry
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {finopsStudies.map(st => (
+                    <div key={st.clinical_study_id} className="glass-card p-4 rounded-xl space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono font-bold text-cyan-300 text-sm">{st.clinical_study_id}</span>
+                        <span className={`px-2 py-0.5 rounded font-mono font-bold ${
+                          st.budget_status === "HEALTHY" ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"
+                        }`}>{st.budget_status}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 pt-1">
+                        <div>
+                          <div className="text-slate-400">Allocated Grant</div>
+                          <div className="font-mono font-bold text-white">${st.allocated_budget_usd.toFixed(2)}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">Total R&D Spend</div>
+                          <div className="font-mono font-bold text-cyan-300">${st.total_spent_usd.toFixed(4)}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">Remaining Cap</div>
+                          <div className="font-mono font-bold text-emerald-300">${st.remaining_budget_usd.toFixed(4)}</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-slate-300">
+                        <div>Clinical Syntheses: <span className="font-mono text-white">{st.clinical_synthesis_runs}</span> (${st.clinical_ai_spend_usd.toFixed(4)})</div>
+                        <div>Quantum Screens: <span className="font-mono text-white">{st.quantum_screening_runs}</span> (${st.quantum_vqe_spend_usd.toFixed(4)})</div>
+                        <div>Spot L4 GPU Savings: <span className="font-mono text-emerald-300">{st.gpu_infrastructure_comparison?.ephemeral_spot_gpu_savings_pct}%</span></div>
+                        <div>Proprietary Equiv.: <span className="font-mono text-amber-300">${st.gpu_infrastructure_comparison?.proprietary_uncalibrated_api_equivalent_usd}</span></div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800">
+                        <button
+                          onClick={() => { setStudyId(st.clinical_study_id); setActiveTab("clinical"); }}
+                          className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-200 font-semibold"
+                        >
+                          ▶ Run Clinical Synthesis
+                        </button>
+                        <button
+                          onClick={() => { setQStudyId(st.clinical_study_id); setActiveTab("quantum"); }}
+                          className="px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-200 font-semibold"
+                        >
+                          ⚛️ Screen Molecule
+                        </button>
+                        <button
+                          onClick={() => allocateStudyGrant(st.clinical_study_id, 2500.0)}
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-200 font-semibold"
+                        >
+                          💵 Top-Up to $2,500
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass rounded-2xl p-6 space-y-4">
+                <h3 className="text-base font-bold text-white">AI-Governance-Lab 4-Pillar Ecosystem Integration (Interactive Actions)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                  <div className="glass-card p-3.5 rounded-xl flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="font-bold text-cyan-300 mb-1">1. quantum-biomed-research-engine</div>
+                      <p className="text-slate-300">This platform: HIPAA PHI Scrubber, 3x GxP Multi-Judge Consensus, Quantum VQE Drug Screener, FDA 21 CFR Part 11 SHA-256 Ledger & Study Grant FinOps.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <a href="/docs" target="_blank" className="px-2.5 py-1.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 font-semibold">Swagger API ↗</a>
+                      <button onClick={() => setActiveTab("ledger")} className="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">Inspect FDA Ledger</button>
+                    </div>
+                  </div>
+                  <div className="glass-card p-3.5 rounded-xl flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="font-bold text-emerald-300 mb-1">2. private-enterprise-ai-hub</div>
+                      <p className="text-slate-300">Centralized LiteLLM Gateway (<code>{runtimeCfg?.tier_2_litellm_gateway_url || "http://localhost:4001/v1"}</code>) & Open WebUI Portal.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <a href={runtimeCfg?.sibling_private_hub_url || "http://localhost:8080"} target="_blank" className="px-2.5 py-1.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 font-semibold">Open Private AI Hub ↗</a>
+                      <a href="/v1/models" target="_blank" className="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">Models JSON ↗</a>
+                    </div>
+                  </div>
+                  <div className="glass-card p-3.5 rounded-xl flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="font-bold text-purple-300 mb-1">3. governed-quantum-agents</div>
+                      <p className="text-slate-300">General-purpose Cirq/Qiskit Quantum Workbench (VQE, QAOA, Grover, QSVM) running side-by-side on K3s NodePort 30088.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <a href={quantumWorkbenchUrl} target="_blank" className="px-2.5 py-1.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 font-semibold">Launch Venus Quantum (:30088) ↗</a>
+                    </div>
+                  </div>
+                  <div className="glass-card p-3.5 rounded-xl flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="font-bold text-amber-300 mb-1">4. nvidia-nim-enterprise-patterns</div>
+                      <p className="text-slate-300">Ephemeral Spot GPU L4/T4 Terraform & K3s TensorRT-LLM NIM patterns powering Tier-1 air-gapped clinical inference.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button onClick={() => setShowGpuSim(!showGpuSim)} className="px-2.5 py-1.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold">
+                        {showGpuSim ? "Hide GPU ROI Breakdown" : "📊 Compare Spot L4 GPU ROI"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {showGpuSim && (
+                  <div className="glass-card p-4 rounded-xl border border-amber-400/40 text-xs space-y-2">
+                    <div className="font-bold text-amber-300 uppercase">NVIDIA L4 GPU NIM vs. Proprietary Cloud API Showback (100-Hour Phase II Trial Benchmark)</div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-slate-200">
+                      <div className="p-3 rounded-lg bg-slate-900">
+                        <div className="text-slate-400">GCP Spot L4 GPU (NIM TensorRT-LLM)</div>
+                        <div className="text-lg font-mono font-bold text-emerald-300">$28.00 / 100 hrs ($0.28/h)</div>
+                        <div className="text-[11px] text-slate-400">Warm cache recovery &lt; 25s • 70.5% savings vs On-Demand</div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-slate-900">
+                        <div className="text-slate-400">GCP On-Demand L4 GPU</div>
+                        <div className="text-lg font-mono font-bold text-cyan-300">$95.00 / 100 hrs ($0.95/h)</div>
+                        <div className="text-[11px] text-slate-400">100% air-gapped clinical data sovereignty</div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-slate-900">
+                        <div className="text-slate-400">Uncalibrated Proprietary Per-Seat / API</div>
+                        <div className="text-lg font-mono font-bold text-rose-300">$320.00+ equivalent</div>
+                        <div className="text-[11px] text-slate-400">Mitigated via LiteLLM Gateway + Spot GPU NIM failover</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "assistant" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-4 glass rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/90 border border-cyan-500/40">
+                    <DrHelixAvatar size="lg" thinking={chatJob.running} />
+                    <div>
+                      <div className="text-xs font-mono uppercase text-cyan-400">Multi-Turn AI Copilot</div>
+                      <h2 className="text-base font-bold text-white">Dr. Helix • R&D Guide</h2>
+                      <div className="text-[11px] text-emerald-400 font-mono">
+                        {chatJob.running ? `⚡ Synthesizing (${chatJob.elapsed}s)...` : `Online • ${chatMessages.length} messages in thread`}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Dr. Helix remembers your conversation history across turns and automatically receives your live Clinical GxP, Quantum VQE, FDA Part 11, and FinOps telemetry.
+                  </p>
+
+                  <div className="space-y-1.5">
+                    <span className="text-xs text-slate-400 uppercase font-semibold">1-Click Multi-Turn Prompts:</span>
+                    {[
+                      "How do I use the 4 tabs step-by-step for a live demo?",
+                      "Explain the Quantum VQE Molecular Screener (SMILES, Hartrees & ΔG)",
+                      "What does Pharma & Quantum Grant FinOps do in Tab 4?",
+                      "How do the 3 GxP Judges and FDA 21 CFR Part 11 SHA-256 chain work?"
+                    ].map((q, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => askAssistantGuide(q)}
+                        disabled={loading}
+                        className="w-full text-left p-2.5 rounded-xl glass-card hover:border-cyan-400/60 text-xs text-cyan-200 transition"
+                      >
+                        💬 {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setChatMessages([chatMessages[0]])}
+                  className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-300 font-semibold transition"
+                >
+                  🗑️ Reset Multi-Turn Conversation
+                </button>
+              </div>
+
+              <div className="lg:col-span-8 glass rounded-2xl p-5 flex flex-col h-[680px]">
+                {/* Active Context Track Banner */}
+                <div className="mb-3 p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400">Active Context Track:</span>
+                    <span className="px-2.5 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 font-bold">
+                      {personaMode === "plain"
+                        ? "1. 👤 Everyday Plain-Language Track (Deep Detail)"
+                        : personaMode === "scientist"
+                        ? "2. 🔬 Scientist & GxP Architect Track (Deep Detail)"
+                        : personaMode === "steps"
+                        ? "3. 🧭 Step-by-Step Practical Guide Track (Deep Detail)"
+                        : "🌍 All 3 Tracks (Click '+ Extend' or '🎯 Focus Track' on any card)"}
+                    </span>
+                  </div>
+                  {personaMode !== "dual" && (
+                    <button
+                      onClick={() => setPersonaMode("dual")}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-[11px] text-cyan-300 font-semibold"
+                    >
+                      🔄 Show All 3 Tracks Again
+                    </button>
+                  )}
+                </div>
+
+                <div ref={chatScrollRef} className="flex-1 overflow-y-auto space-y-4 pr-2 scroll-smooth">
+                  {chatMessages.map((msg, idx) => (
+                    msg.role === "user" ? (
+                      <div key={idx} className="flex items-start justify-end gap-3">
+                        <div className="max-w-xl rounded-2xl rounded-tr-sm bg-gradient-to-r from-cyan-600/40 to-indigo-600/40 border border-cyan-400/50 p-3.5 text-xs text-white shadow">
+                          <div className="text-[10px] font-mono uppercase text-cyan-300 mb-1">You (Researcher / Reviewer)</div>
+                          <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                        </div>
+                        <UserScientistAvatar />
+                      </div>
+                    ) : (
+                      <AssistantTurnBubble
+                        key={idx}
+                        msg={msg}
+                        idx={idx}
+                        personaMode={personaMode}
+                        onSelectContextTrack={selectAndContinueInTrack}
+                        askAssistantGuide={askAssistantGuide}
+                        disabled={chatJob.running}
+                      />
+                    )
+                  ))}
+
+                  {chatJob.running && (
+                    <div className="flex items-start gap-3 animate-pulse">
+                      <DrHelixAvatar size="md" thinking={true} />
+                      <div className="glass-card rounded-2xl p-4 border border-cyan-400/50 space-y-2 max-w-lg">
+                        <div className="flex items-center gap-2 text-xs font-mono text-amber-300">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                          <span>⚡ Dr. Helix is synthesizing response • ⏱️ {chatJob.elapsed}s...</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          Inspecting live Clinical GxP, Quantum VQE & FDA Part 11 context (continues in background if you switch menus).
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+
+                <div className="pt-3 mt-3 border-t border-slate-800 flex gap-2 items-end">
+                  <textarea
+                    rows="2"
+                    value={chatQuestion}
+                    onChange={e => setChatQuestion(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        askAssistantGuide(chatQuestion);
+                      }
+                    }}
+                    placeholder="Type a follow-up question for Dr. Helix (press Enter to send)..."
+                    className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:border-cyan-400 text-xs text-white"
+                  />
+                  <button
+                    onClick={() => askAssistantGuide(chatQuestion)}
+                    disabled={chatJob.running || !chatQuestion.trim()}
+                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 disabled:opacity-50 text-slate-950 font-bold text-xs transition shrink-0"
+                  >
+                    {chatJob.running ? `⏱️ ${chatJob.elapsed}s...` : "Send Turn ➢"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
